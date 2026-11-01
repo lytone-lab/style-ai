@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -133,7 +133,7 @@ export default function OutfitAnalysisPage() {
           "error" in payload &&
           typeof payload.error === "string"
             ? payload.error
-            : "We couldn’t analyze that outfit. Please try again.";
+            : "We couldn't analyze that outfit. Please try again.";
         throw new Error(message);
       }
 
@@ -186,8 +186,7 @@ export default function OutfitAnalysisPage() {
             </div>
 
             <div
-              className={`relative ${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""} ${file ? styles.dropzoneSelected : ""}`}
-              onDragOver={handleDragOver}
+              className={`relative ${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""} ${file ? styles.dropzoneSelected : ""}`}              onDragOver={handleDragOver}
               onDragEnter={handleDragOver}
               onDragLeave={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
@@ -252,13 +251,12 @@ export default function OutfitAnalysisPage() {
               <>
                 <div className={styles.resultHeader}>
                   <p className={styles.eyebrow}>THE STYLE NOTES</p>
-                  <h2>Here’s the read.</h2>
+                  <h2>Here's the read.</h2>
                 </div>
 
                 <div className={styles.summaryGrid}>
                   <article className={styles.scoreCard}>
-                    <div className={styles.scoreDial} style={scoreStyle} aria-label={`Harmony score ${result.harmony_score} out of 100`}>
-                      <div className={styles.scoreInner}>
+                    <div className={styles.scoreDial} style={scoreStyle} aria-label={`Harmony score ${result.harmony_score} out of 100`}>                      <div className={styles.scoreInner}>
                         <strong>{result.harmony_score}</strong>
                         <span>HARMONY</span>
                       </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -53,10 +53,11 @@ const SAMPLE_HISTORY: HistoryEntry[] = [
 ];
 
 const METRICS = [
-  { name: "Palette Balance", score: 81, hint: "Tonal clarity" },
-  { name: "Silhouette Proportion", score: 64, hint: "Room to refine" },
-  { name: "Contrast Ratio", score: 73, hint: "Balanced" },
+  { name: "Palette Balance", score: 0, hint: "Awaiting scan" },
+  { name: "Silhouette Proportion", score: 0, hint: "Awaiting scan" },
+  { name: "Contrast Ratio", score: 0, hint: "Awaiting scan" },
 ];
+
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const FALLBACK_COLORS = ["#9a9aa3", "#5a5a64", "#d0c4b1", "#777782"];
@@ -90,9 +91,9 @@ function MetricRing({ name, score, hint }: (typeof METRICS)[number]) {
         aria-valuenow={score}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${name}: ${score} out of 100`}
+        aria-label={`${name}: ${score > 0 ? score : "not analyzed"} out of 100`}
       >
-        <div className={styles.metricRingInner}>{score}</div>
+        <div className={styles.metricRingInner}>{score > 0 ? score : "--"}</div>
       </div>
       <p className={styles.metricName}>{name}</p>
       <p className={styles.metricHint}>{hint}</p>
@@ -151,7 +152,7 @@ export default function Home() {
           "error" in payload &&
           typeof payload.error === "string"
             ? payload.error
-            : "We couldn’t analyze this outfit. Please try again.";
+            : "We couldn't analyze this outfit. Please try again.";
         throw new Error(message);
       }
       if (!isOutfitResult(payload)) {
@@ -169,7 +170,7 @@ export default function Home() {
         },
         ...current.filter((entry) => !entry.id.startsWith("sample-")),
       ]);
-      setUploadMessage("Your style scan was added to this session’s history.");
+      setUploadMessage("Your style scan was added to this session's history.");
     } catch (error) {
       setUploadError(true);
       setUploadMessage(
@@ -181,6 +182,10 @@ export default function Home() {
       setIsAnalyzing(false);
     }
   }
+
+  // Tie the top dial to the latest real scan, fallback to "--" if only samples exist
+  const latestScore = history[0]?.score;
+  const isRealScan = history[0] && !history[0].id.startsWith("sample-");
 
   return (
     <main className={styles.dashboard}>
@@ -202,7 +207,7 @@ export default function Home() {
           </div>
           <span className={styles.dateLabel}>Personal dashboard</span>
         </div>
-        <p className={styles.sampleNotice}>Illustrative sample metrics — personalize with your own scans.</p>
+        <p className={styles.sampleNotice}>Upload a look to generate your real harmony score.</p>
 
         <section className={styles.analyticsCard} aria-label="Style analytics">
           <div className={styles.scorePanel}>
@@ -210,17 +215,17 @@ export default function Home() {
             <div
               className={styles.scoreDial}
               role="progressbar"
-              aria-valuenow={72}
+              aria-valuenow={isRealScan ? latestScore : 0}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label="Style harmony score: 72 out of 100"
+              aria-label={isRealScan ? `Style harmony score: ${latestScore} out of 100` : "No scan yet"}
             >
               <div className={styles.scoreDialInner}>
-                <span className={styles.scoreValue}>72</span>
+                <span className={styles.scoreValue}>{isRealScan ? latestScore : "--"}</span>
                 <span className={styles.scoreScale}>/ 100</span>
               </div>
             </div>
-            <p className={styles.scoreCaption}>A balanced foundation to build on</p>
+            <p className={styles.scoreCaption}>{isRealScan ? "Your latest scan" : "Awaiting your first scan"}</p>
           </div>
           <div className={styles.metricGrid} aria-label="Style data layers">
             {METRICS.map((metric) => <MetricRing key={metric.name} {...metric} />)}
@@ -293,7 +298,7 @@ export default function Home() {
             <span>Find your personal palette ↗</span>
           </Link>
           <Link className={styles.quickLink} href="/analyze/outfit">
-            <span className={styles.quickIcon} aria-hidden="true">⌁</span>
+            <span className={styles.quickIcon} aria-hidden="true">✕</span>
             <strong>Outfit check</strong>
             <span>Get a focused second opinion ↗</span>
           </Link>
