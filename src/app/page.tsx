@@ -190,11 +190,6 @@ export default function Home() {
           <span>Style AI</span>
         </Link>
         <div className={styles.headerActions}>
-          <div className={styles.streak} aria-label="Demo style streak: four days">
-            <span className={styles.streakIcon} aria-hidden="true">🔥</span>
-            <span>4 day streak</span>
-            <small>DEMO</small>
-          </div>
           <span className={styles.profileLink} aria-label="Style profile">SA</span>
         </div>
       </header>

@@ -1,0 +1,23 @@
+.shine {
+  animation: tryon-shine 1.8s ease-in-out infinite;
+}
+
+.pulse {
+  animation: tryon-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes tryon-shine {
+  from { transform: translateX(-220%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes tryon-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine,
+  .pulse {
+    animation: none;
+  }
+}
