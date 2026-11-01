@@ -1,0 +1,216 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import styles from "./share-card.module.css";
+
+export type ShareCardProps = {
+  undertone: string;
+  harmonyScore: number;
+  dominantColors: string[];
+};
+
+const CARD_WIDTH = 1080;
+const CARD_HEIGHT = 1350;
+const WATERMARK = "Analyze your style at style-app-waitlist.vercel.app";
+
+function toHexColor(context: CanvasRenderingContext2D, color: string): string | null {
+  if (!CSS.supports("color", color)) return null;
+
+  context.clearRect(0, 0, 1, 1);
+  context.fillStyle = color;
+  context.fillRect(0, 0, 1, 1);
+  const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+  return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function drawShareCard(
+  canvas: HTMLCanvasElement,
+  { undertone, harmonyScore, dominantColors }: ShareCardProps,
+) {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("Your browser could not prepare the style card.");
+
+  const colorCanvas = document.createElement("canvas");
+  colorCanvas.width = 1;
+  colorCanvas.height = 1;
+  const colorContext = colorCanvas.getContext("2d");
+  const colors = colorContext
+    ? dominantColors
+        .map((color) => toHexColor(colorContext, color))
+        .filter((color): color is string => color !== null)
+        .slice(0, 6)
+    : [];
+  const score = Math.max(0, Math.min(100, Math.round(harmonyScore)));
+
+  canvas.width = CARD_WIDTH;
+  canvas.height = CARD_HEIGHT;
+  context.fillStyle = "#f7f6f1";
+  context.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+  context.strokeStyle = "#deded5";
+  context.lineWidth = 2;
+  context.strokeRect(38, 38, CARD_WIDTH - 76, CARD_HEIGHT - 76);
+
+  context.fillStyle = "#777a72";
+  context.font = "700 20px Arial, sans-serif";
+  context.letterSpacing = "4px";
+  context.fillText("THE AI STYLE APP  /  PERSONAL STYLE PROFILE", 90, 115);
+
+  context.strokeStyle = "#c6513b";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(90, 160);
+  context.lineTo(150, 160);
+  context.stroke();
+
+  context.fillStyle = "#20231f";
+  context.font = "500 86px Georgia, serif";
+  context.letterSpacing = "0px";
+  context.fillText("Your style,", 90, 285);
+  context.fillStyle = "#c6513b";
+  context.font = "italic 500 86px Georgia, serif";
+  context.fillText("in color.", 90, 385);
+
+  context.fillStyle = "#777a72";
+  context.font = "700 19px Arial, sans-serif";
+  context.letterSpacing = "3px";
+  context.fillText("YOUR UNDERTONE", 90, 500);
+  context.fillStyle = "#20231f";
+  context.font = "500 52px Georgia, serif";
+  context.letterSpacing = "0px";
+  context.fillText(undertone.trim().slice(0, 32) || "Personal palette", 90, 565);
+
+  const dialX = 790;
+  const dialY = 500;
+  const dialRadius = 113;
+  context.beginPath();
+  context.arc(dialX, dialY, dialRadius, 0, Math.PI * 2);
+  context.strokeStyle = "#e4e1d8";
+  context.lineWidth = 13;
+  context.stroke();
+  context.beginPath();
+  context.arc(dialX, dialY, dialRadius, -Math.PI / 2, -Math.PI / 2 + (score / 100) * Math.PI * 2);
+  context.strokeStyle = "#c6513b";
+  context.lineWidth = 13;
+  context.lineCap = "round";
+  context.stroke();
+  context.fillStyle = "#20231f";
+  context.textAlign = "center";
+  context.font = "500 67px Georgia, serif";
+  context.fillText(String(score), dialX, dialY + 13);
+  context.fillStyle = "#777a72";
+  context.font = "700 15px Arial, sans-serif";
+  context.letterSpacing = "2px";
+  context.fillText("HARMONY", dialX, dialY + 49);
+  context.textAlign = "left";
+  context.lineCap = "butt";
+
+  context.strokeStyle = "#deded5";
+  context.lineWidth = 2;
+  context.beginPath();
+  context.moveTo(90, 700);
+  context.lineTo(990, 700);
+  context.stroke();
+
+  context.fillStyle = "#777a72";
+  context.font = "700 20px Arial, sans-serif";
+  context.letterSpacing = "4px";
+  context.fillText("YOUR SIGNATURE COLORS", 90, 775);
+
+  const swatchSize = 245;
+  const swatchGap = 31;
+  const swatchTop = 830;
+  colors.forEach((color, index) => {
+    const column = index % 3;
+    const row = Math.floor(index / 3);
+    const x = 90 + column * (swatchSize + swatchGap);
+    const y = swatchTop + row * 190;
+    context.fillStyle = color;
+    context.fillRect(x, y, swatchSize, 125);
+    context.strokeStyle = "#deded5";
+    context.lineWidth = 2;
+    context.strokeRect(x, y, swatchSize, 125);
+    context.fillStyle = "#464941";
+    context.font = "600 18px Arial, sans-serif";
+    context.letterSpacing = "2px";
+    context.fillText(color.toUpperCase(), x, y + 160);
+  });
+
+  if (colors.length === 0) {
+    context.fillStyle = "#777a72";
+    context.font = "400 24px Arial, sans-serif";
+    context.letterSpacing = "0px";
+    context.fillText("Your colors will appear here.", 90, swatchTop + 40);
+  }
+
+  context.strokeStyle = "#deded5";
+  context.beginPath();
+  context.moveTo(90, 1210);
+  context.lineTo(990, 1210);
+  context.stroke();
+  context.fillStyle = "#777a72";
+  context.font = "500 17px Arial, sans-serif";
+  context.letterSpacing = "1px";
+  context.fillText(WATERMARK, 90, 1260);
+  context.letterSpacing = "0px";
+}
+
+export default function ShareCard(props: ShareCardProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isRendered, setIsRendered] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    try {
+      drawShareCard(canvas, props);
+      setIsRendered(true);
+      setErrorMessage(null);
+    } catch (error) {
+      setIsRendered(false);
+      setErrorMessage(
+        error instanceof Error ? error.message : "The style card could not be rendered.",
+      );
+    }
+  }, [props.dominantColors, props.harmonyScore, props.undertone]);
+
+  const downloadCard = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !isRendered) return;
+
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        setErrorMessage("The style card could not be prepared for download. Please try again.");
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "my-style-card.png";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, "image/png");
+  };
+
+  return (
+    <section className={styles.shareCard} aria-label="Download your style card">
+      <canvas
+        ref={canvasRef}
+        className={styles.canvas}
+        width={CARD_WIDTH}
+        height={CARD_HEIGHT}
+        role="img"
+        aria-label={`Style profile for ${props.undertone}, harmony score ${props.harmonyScore} out of 100`}
+      />
+      <button className={styles.downloadButton} type="button" onClick={downloadCard} disabled={!isRendered}>
+        Download Style Card <span aria-hidden="true">↓</span>
+      </button>
+      {errorMessage && <p className={styles.errorMessage} role="alert">{errorMessage}</p>}
+    </section>
+  );
+}

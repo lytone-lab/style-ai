@@ -1,0 +1,50 @@
+.shareCard {
+  width: min(100%, 520px);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #33333b;
+  border-radius: 16px;
+  box-shadow: 0 16px 42px rgb(0 0 0 / 28%);
+}
+
+.downloadButton {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid #f4f4f5;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #121214;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.downloadButton:hover:not(:disabled) {
+  background: #d4d4d8;
+}
+
+.downloadButton:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.downloadButton span {
+  font-size: 16px;
+}
+
+.errorMessage {
+  margin: 10px 0 0;
+  color: #fda4af;
+  font-size: 11px;
+}
