@@ -251,7 +251,7 @@ export default function OutfitAnalysisPage() {
               <>
                 <div className={styles.resultHeader}>
                   <p className={styles.eyebrow}>THE STYLE NOTES</p>
-                  <h2>Here's the read.</h2>
+                  <h2>Here&#39;s the read.</h2>
                 </div>
 
                 <div className={styles.summaryGrid}>
