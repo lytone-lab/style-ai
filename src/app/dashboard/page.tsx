@@ -1,332 +1,93 @@
 ﻿"use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { WaitlistForm } from "@/components/waitlist-form";
-import styles from "./dashboard.module.css";
 
-type OutfitResult = {
-  detected_items: string[];
-  dominant_colors: string[];
-  harmony_score: number;
-};
-
-type HistoryEntry = {
-  id: string;
-  title: string;
-  score: number;
-  colors: string[];
-  previewUrl: string | null;
-  caption: string;
-  sampleColors?: [string, string];
-};
-
-const SAMPLE_HISTORY: HistoryEntry[] = [
-  {
-    id: "sample-1",
-    title: "Executive Classic Double-Breasted Blazer",
-    score: 84,
-    colors: ["#7d8790", "#282a2e", "#c5b7a3"],
-    previewUrl: null,
-    caption: "Sample look · Yesterday",
-    sampleColors: ["#4c5158", "#23252a"],
-  },
-  {
-    id: "sample-2",
-    title: "Soft Tailoring & Tonal Layers",
-    score: 78,
-    colors: ["#c2b9ae", "#7d776d", "#393b3e"],
-    previewUrl: null,
-    caption: "Sample look · 3 days ago",
-    sampleColors: ["#726d66", "#363638"],
-  },
-  {
-    id: "sample-3",
-    title: "Modern Minimal Weekend Edit",
-    score: 91,
-    colors: ["#d0cfc8", "#8d928e", "#27282a"],
-    previewUrl: null,
-    caption: "Sample look · 5 days ago",
-    sampleColors: ["#969992", "#404247"],
-  },
-];
-
-const METRICS = [
-  { name: "Palette Balance", score: 0, hint: "Awaiting scan" },
-  { name: "Silhouette Proportion", score: 0, hint: "Awaiting scan" },
-  { name: "Contrast Ratio", score: 0, hint: "Awaiting scan" },
-];
-
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const FALLBACK_COLORS = ["#9a9aa3", "#5a5a64", "#d0c4b1", "#777782"];
-
-function isOutfitResult(value: unknown): value is OutfitResult {
-  if (!value || typeof value !== "object") return false;
-  const result = value as Record<string, unknown>;
-  return (
-    Array.isArray(result.detected_items) &&
-    result.detected_items.every((item) => typeof item === "string") &&
-    Array.isArray(result.dominant_colors) &&
-    result.dominant_colors.every((color) => typeof color === "string") &&
-    typeof result.harmony_score === "number" &&
-    Number.isFinite(result.harmony_score) &&
-    result.harmony_score >= 0 &&
-    result.harmony_score <= 100
-  );
-}
-
-function colorValue(value: string, index: number) {
-  return /^#[\da-f]{6}$/i.test(value) ? value : FALLBACK_COLORS[index % FALLBACK_COLORS.length];
-}
-
-function MetricRing({ name, score, hint }: (typeof METRICS)[number]) {
-  return (
-    <article className={styles.metricCard}>
-      <div
-        className={styles.metricRing}
-        style={{ "--metric-angle": `${score * 3.6}deg` } as React.CSSProperties}
-        role="progressbar"
-        aria-valuenow={score}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${name}: ${score > 0 ? score : "not analyzed"} out of 100`}
-      >
-        <div className={styles.metricRingInner}>{score > 0 ? score : "--"}</div>
-      </div>
-      <p className={styles.metricName}>{name}</p>
-      <p className={styles.metricHint}>{hint}</p>
-    </article>
-  );
-}
-
-export default function Home() {
-  const [history, setHistory] = useState(SAMPLE_HISTORY);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState("");
-  const [uploadError, setUploadError] = useState(false);
-  const objectUrls = useRef<string[]>([]);
-
-  useEffect(() => () => {
-    objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
-  }, []);
-
-  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    setUploadError(false);
-    setUploadMessage("");
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setUploadError(true);
-      setUploadMessage("Choose a JPEG, PNG, or WebP image.");
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setUploadError(true);
-      setUploadMessage("Choose an image smaller than 4 MB.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    const previewUrl = URL.createObjectURL(file);
-    objectUrls.current.push(previewUrl);
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const response = await fetch("/api/outfit-check", { method: "POST", body: formData });
-      let payload: unknown;
-      try {
-        payload = await response.json();
-      } catch {
-        throw new Error("The style service returned an unreadable response. Please try again.");
-      }
-
-      if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload !== null &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "We couldn't analyze this outfit. Please try again.";
-        throw new Error(message);
-      }
-      if (!isOutfitResult(payload)) {
-        throw new Error("The style service returned an unexpected result.");
-      }
-
-      setHistory((current) => [
-        {
-          id: `${Date.now()}`,
-          title: payload.detected_items.slice(0, 2).join(" + ") || "Outfit analysis",
-          score: payload.harmony_score,
-          colors: payload.dominant_colors.slice(0, 4).map(colorValue),
-          previewUrl,
-          caption: "Just now · This session",
-        },
-        ...current.filter((entry) => !entry.id.startsWith("sample-")),
-      ]);
-      setUploadMessage("Your style scan was added to this session's history.");
-    } catch (error) {
-      setUploadError(true);
-      setUploadMessage(
-        error instanceof Error ? error.message : "Something went wrong. Please try again.",
-      );
-      URL.revokeObjectURL(previewUrl);
-      objectUrls.current = objectUrls.current.filter((url) => url !== previewUrl);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }
-
-  // Tie the top dial to the latest real scan, fallback to "--" if only samples exist
-  const latestScore = history[0]?.score;
-  const isRealScan = history[0] && !history[0].id.startsWith("sample-");
+export default function MobileDashboardPage() {
+  const latestScore = 92;
+  
+  // SVG math for a perfect ring
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (latestScore / 100) * circumference;
 
   return (
-    <main className={styles.dashboard}>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/" aria-label="Style AI dashboard">
-          <span className={styles.brandMark} aria-hidden="true">S</span>
-          <span>Style AI</span>
+    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] overflow-hidden">
+      
+      {/* Header */}
+      <header className="flex justify-between items-center px-6 py-6 shrink-0 z-10">
+        <span className="text-[22px] font-black tracking-tighter">STYLE.AI</span>
+        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888] hover:text-[#FFFFFF] transition-colors">
+          Home
         </Link>
-        <div className={styles.headerActions}>
-          <span className={styles.profileLink} aria-label="Style profile">SA</span>
-        </div>
       </header>
 
-      <section aria-labelledby="dashboard-title">
-        <div className={styles.intro}>
-          <div>
-            <p className={styles.eyebrow}>STYLE INTELLIGENCE</p>
-            <h1 id="dashboard-title">Your style pulse</h1>
-          </div>
-          <span className={styles.dateLabel}>Personal dashboard</span>
-        </div>
-        <p className={styles.sampleNotice}>Upload a look to generate your real harmony score.</p>
-
-        <section className={styles.analyticsCard} aria-label="Style analytics">
-          <div className={styles.scorePanel}>
-            <p className={styles.scoreLabel}>STYLE HARMONY SCORE</p>
-            <div
-              className={styles.scoreDial}
-              role="progressbar"
-              aria-valuenow={isRealScan ? latestScore : 0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={isRealScan ? `Style harmony score: ${latestScore} out of 100` : "No scan yet"}
-            >
-              <div className={styles.scoreDialInner}>
-                <span className={styles.scoreValue}>{isRealScan ? latestScore : "--"}</span>
-                <span className={styles.scoreScale}>/ 100</span>
-              </div>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
+        
+        {/* Massive SVG Ring */}
+        <div className="flex flex-col items-center justify-center mt-4 mb-10 shrink-0">
+          <div className="relative w-64 h-64 flex items-center justify-center mb-6">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              {/* Background track */}
+              <circle 
+                cx="50" cy="50" r={radius} 
+                fill="none" stroke="#222222" strokeWidth="8" 
+              />
+              {/* Animated progress */}
+              <circle 
+                cx="50" cy="50" r={radius} 
+                fill="none" stroke="#00FF66" strokeWidth="8" 
+                strokeDasharray={circumference} 
+                strokeDashoffset={strokeDashoffset} 
+                strokeLinecap="round" 
+                className="transition-all duration-1000 ease-out"
+              />
+            </svg>
+            {/* Inner Text */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-[13px] font-bold uppercase tracking-widest text-[#888888] mb-1">Harmony</span>
+              <strong className="text-[72px] font-black leading-none tracking-tighter">{latestScore}</strong>
+              <span className="text-[13px] font-bold text-[#555555] mt-1">/ 100</span>
             </div>
-            <p className={styles.scoreCaption}>{isRealScan ? "Your latest scan" : "Awaiting your first scan"}</p>
           </div>
-          <div className={styles.metricGrid} aria-label="Style data layers">
-            {METRICS.map((metric) => <MetricRing key={metric.name} {...metric} />)}
+          <p className="text-[13px] font-bold text-[#888888] uppercase tracking-widest">Today's Style Pulse</p>
+        </div>
+
+        {/* History List */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-end mb-2">
+            <h2 className="text-[18px] font-bold tracking-tight">Recent Scans</h2>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#555555]">0 items</span>
           </div>
-        </section>
-      </section>
 
-      <section aria-labelledby="history-title">
-        <div className={styles.sectionHeading}>
-          <h2 id="history-title">Recently Uploaded</h2>
-          <span className={styles.sectionMeta}>{history.length} looks · sample + this session</span>
+          <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 text-center flex flex-col items-center">
+            <p className="text-[15px] font-bold text-[#FFFFFF] mb-2">No outfits scanned yet.</p>
+            <p className="text-[13px] text-[#888888]">Tap the scan button below to start building your digital wardrobe.</p>
+          </div>
         </div>
-        <div className={styles.historyCard}>
-          {history.map((entry) => (
-            <article className={styles.historyRow} key={entry.id}>
-              <div className={styles.thumb}>
-                {entry.previewUrl ? (
-                  <Image
-                    className={styles.thumbImage}
-                    src={entry.previewUrl}
-                    alt={`Uploaded outfit: ${entry.title}`}
-                    width={116}
-                    height={132}
-                    unoptimized
-                  />
-                ) : (
-                  <div
-                    className={styles.sampleThumb}
-                    style={{
-                      "--thumb-a": entry.sampleColors?.[0] ?? "#414149",
-                      "--thumb-b": entry.sampleColors?.[1] ?? "#24242a",
-                    } as React.CSSProperties}
-                    role="img"
-                    aria-label="Illustrative outfit thumbnail"
-                  >
-                    <span className={styles.garmentShape} aria-hidden="true" />
-                  </div>
-                )}
-              </div>
-              <div className={styles.historyInfo}>
-                <p className={styles.historyTitle}>{entry.title}</p>
-                <p className={styles.historyCaption}>{entry.caption}</p>
-                <div className={styles.swatchRow} aria-label="Dominant colors">
-                  {entry.colors.map((color, index) => (
-                    <span
-                      className={styles.colorChip}
-                      key={`${entry.id}-${color}-${index}`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-              <span className={styles.historyScore}>{entry.score}<span aria-hidden="true">/100</span></span>
-            </article>
-          ))}
-        </div>
-        {uploadMessage && (
-          <p className={`${styles.scanNotice}${uploadError ? ` ${styles.scanError}` : ""}`} role={uploadError ? "alert" : "status"}>
-            {uploadMessage}
-          </p>
-        )}
-      </section>
-
-      <div className={styles.lowerGrid}>
-        <nav className={styles.quickLinks} aria-label="Style tools">
-          <Link className={styles.quickLink} href="/analyze/color">
-            <span className={styles.quickIcon} aria-hidden="true">◉</span>
-            <strong>Color analysis</strong>
-            <span>Find your personal palette ↗</span>
-          </Link>
-          <Link className={styles.quickLink} href="/analyze/outfit">
-            <span className={styles.quickIcon} aria-hidden="true">✕</span>
-            <strong>Outfit check</strong>
-            <span>Get a focused second opinion ↗</span>
-          </Link>
-        </nav>
-        <section className={styles.accessCard} aria-labelledby="access-title">
-          <h2 id="access-title">Get early access</h2>
-          <p>Join the founding list for thoughtful style tools, made personal.</p>
-          <WaitlistForm />
-        </section>
       </div>
 
-      <footer className={styles.footer}>
-        <span>STYLE AI · PERSONAL STYLE INTELLIGENCE</span>
-        <span>Images are kept in this tab only.</span>
-      </footer>
+      {/* Bottom Nav (Flex child, locked to bottom) */}
+      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] flex items-center justify-around px-8 relative">
+        <Link href="/dashboard" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#FFFFFF]">◉</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#FFFFFF]">Home</span>
+        </Link>
+        
+        {/* Floating Action Button */}
+        <Link 
+          href="/analyze/outfit" 
+          className="absolute -top-8 left-1/2 -translate-x-1/2 h-[68px] w-[68px] bg-[#FFFFFF] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform"
+        >
+          <span className="text-[32px] font-black text-[#000000]">+</span>
+        </Link>
 
-      <label className={styles.floatingUpload} aria-busy={isAnalyzing}>
-        <input
-          className={styles.floatingInput}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleUpload}
-          aria-label="Upload an outfit image for analysis"
-          disabled={isAnalyzing}
-        />
-        <span className={styles.floatingIcon} aria-hidden="true">{isAnalyzing ? "…" : "+"}</span>
-        <span className={styles.srOnly}>{isAnalyzing ? "Analyzing outfit" : "Upload an outfit"}</span>
-      </label>
+        <Link href="/dashboard/try-on" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">✦</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Studio</span>
+        </Link>
+      </div>
+
     </main>
   );
 }
