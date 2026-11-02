@@ -1,22 +1,17 @@
-"use client";
+﻿"use client";
 
 import { FormEvent, useState } from "react";
 
-type FormStatus = "idle" | "submitting" | "success" | "error";
-type WaitlistResponse = { message?: string; error?: string };
-
-function isWaitlistResponse(value: unknown): value is WaitlistResponse {
-  return typeof value === "object" && value !== null;
-}
-
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<FormStatus>("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setStatus("submitting");
+    if (!email) return;
+
+    setStatus("loading");
     setMessage("");
 
     try {
@@ -26,88 +21,55 @@ export function WaitlistForm() {
         body: JSON.stringify({ email }),
       });
 
-      let payload: unknown;
-      try {
-        payload = await response.json();
-      } catch {
-        payload = null;
-      }
+      const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage =
-          isWaitlistResponse(payload) &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "Something went wrong. Please try again.";
-        setStatus("error");
-        setMessage(errorMessage);
-        return;
+        throw new Error(data.error || "Something went wrong.");
       }
 
       setStatus("success");
-      setMessage(
-        isWaitlistResponse(payload) &&
-          "message" in payload &&
-          typeof payload.message === "string"
-          ? payload.message
-          : "You’re on the list. We’ll be in touch.",
-      );
+      setMessage("You're on the list. We'll be in touch.");
       setEmail("");
-    } catch {
+    } catch (err) {
       setStatus("error");
-      setMessage("We couldn’t reach the server. Please try again.");
+      setMessage(err instanceof Error ? err.message : "Something went wrong.");
     }
   }
 
-  if (status === "success") {
-    return (
-      <div className="waitlist-success" role="status" aria-live="polite">
-        <span className="waitlist-success-mark" aria-hidden="true">✓</span>
-        <span>
-          <strong>You’re on the list.</strong>
-          <span>{message}</span>
-        </span>
-      </div>
-    );
-  }
-
   return (
-    <div className="waitlist-wrap">
-      <form className="waitlist-form" onSubmit={handleSubmit}>
-        <label className="sr-only" htmlFor="waitlist-email">Email address</label>
+    <div className="w-full max-w-md mx-auto">
+      <form
+        onSubmit={onSubmit}
+        className="relative flex items-center p-1.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_40px_-10px_rgba(185,154,107,0.15)] backdrop-blur-xl transition-all focus-within:border-[#B99A6B]/50 focus-within:shadow-[0_0_50px_-5px_rgba(185,154,107,0.25)]"
+      >
         <input
-          id="waitlist-email"
-          name="email"
           type="email"
-          autoComplete="email"
-          placeholder="Your email address"
           value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            if (status === "error") {
-              setStatus("idle");
-              setMessage("");
-            }
-          }}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
           required
-          maxLength={254}
-          disabled={status === "submitting"}
-          aria-describedby="waitlist-message"
+          disabled={status === "loading" || status === "success"}
+          className="w-full bg-transparent px-5 py-3.5 text-[14px] text-[#E8E6E3] placeholder:text-[#55555A] focus:outline-none disabled:opacity-50"
         />
-        <button type="submit" disabled={status === "submitting"}>
-          {status === "submitting" ? "Joining..." : "Get early access"}
-          <span aria-hidden="true">↗</span>
+        <button
+          type="submit"
+          disabled={status === "loading" || status === "success"}
+          className="shrink-0 rounded-xl bg-[#E8E6E3] px-6 py-3 text-[12px] font-semibold text-[#121214] transition-all hover:bg-white hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
+          {status === "loading" ? "Joining..." : status === "success" ? "Joined" : "Get early access"}
         </button>
       </form>
-      <p
-        id="waitlist-message"
-        className={`form-message${status === "error" ? " form-message-error" : ""}`}
-        role={status === "error" ? "alert" : "status"}
-        aria-live="polite"
-      >
-        {message || "A little note when we’re ready. No noise, ever."}
-      </p>
+      
+      {message && (
+        <p className={`mt-3 text-[12px] ${status === "error" ? "text-red-400" : "text-[#B99A6B]"}`}>
+          {message}
+        </p>
+      )}
+      {!message && (
+        <p className="mt-4 text-[11px] tracking-wide text-[#55555A]">
+          A little note when we&apos;re ready. No noise, ever.
+        </p>
+      )}
     </div>
   );
 }
