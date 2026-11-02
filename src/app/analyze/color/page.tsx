@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Script from "next/script";
@@ -510,11 +510,11 @@ export default function ColorAnalysisPage() {
             <p className={styles.resultDescription}>
               {undertone
                 ? "A first read on the colors naturally reflected in your skin."
-                : "We’ll share your color read once your face is in frame."}
+                : "We'll share your color read once your face is in frame."}
             </p>
             <div className={styles.resultRule} />
             <p className={styles.privacyNote}>
-              <span aria-hidden="true">✳</span> Your image is processed on your device and never saved.
+              <span aria-hidden="true">✓</span> Your image is processed on your device and never saved.
             </p>
           </aside>
         </div>
