@@ -82,7 +82,7 @@ export default function MobileDashboardPage() {
               <span className="text-[13px] font-bold text-[#555555] mt-1">/ 100</span>
             </div>
           </div>
-          <p className="text-[13px] font-bold text-[#888888] uppercase tracking-widest">Today's Style Pulse</p>
+          <p className="text-[13px] font-bold text-[#888888] uppercase tracking-widest">Today&apos;s Style Pulse</p>
         </div>
 
         <div className="flex flex-col gap-3">

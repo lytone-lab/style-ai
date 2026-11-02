@@ -115,9 +115,9 @@ export default function OutfitAnalysisPage() {
       if (dbError) throw dbError;
 
       setResult(payload);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Full Error Object:", error);
-      const exactMessage = error?.message || error?.error_description || error?.error || "Something went wrong.";
+      const err = error as { message?: string; error_description?: string; error?: string }; const exactMessage = err?.message || err?.error_description || err?.error || "Something went wrong.";
       setErrorMessage(exactMessage);
     } finally { setIsLoading(false); }
   };

@@ -77,7 +77,7 @@ export default function ClosetPage() {
       <div className="flex-1 overflow-y-auto px-6 pb-24">
         <div className="mb-8">
           <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-2">Your Closet.</h1>
-          <p className="text-[14px] text-[#888888]">Every unique item you've scanned, automatically cataloged.</p>
+          <p className="text-[14px] text-[#888888]">Every unique item you&apos;ve scanned, automatically cataloged.</p>
         </div>
 
         {items.length === 0 ? (
