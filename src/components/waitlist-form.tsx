@@ -10,23 +10,16 @@ export function WaitlistForm() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email) return;
-
     setStatus("loading");
     setMessage("");
-
     try {
       const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Something went wrong.");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Something went wrong.");
       setStatus("success");
       setMessage("You're on the list. We'll be in touch.");
       setEmail("");
@@ -40,7 +33,7 @@ export function WaitlistForm() {
     <div className="w-full max-w-md mx-auto">
       <form
         onSubmit={onSubmit}
-        className="relative flex items-center p-1.5 rounded-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_40px_-10px_rgba(185,154,107,0.15)] backdrop-blur-xl transition-all focus-within:border-[#B99A6B]/50 focus-within:shadow-[0_0_50px_-5px_rgba(185,154,107,0.25)]"
+        className="relative flex items-center p-2 rounded-[1.5rem] bg-[#151518] shadow-[inset_4px_4px_10px_rgba(0,0,0,0.6),inset_-4px_-4px_10px_rgba(255,255,255,0.03)]"
       >
         <input
           type="email"
@@ -49,19 +42,18 @@ export function WaitlistForm() {
           placeholder="Your email address"
           required
           disabled={status === "loading" || status === "success"}
-          className="w-full bg-transparent px-5 py-3.5 text-[14px] text-[#E8E6E3] placeholder:text-[#55555A] focus:outline-none disabled:opacity-50"
+          className="w-full bg-transparent px-5 py-3 text-[14px] text-[#E8E6E3] placeholder:text-[#55555A] focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={status === "loading" || status === "success"}
-          className="shrink-0 rounded-xl bg-[#E8E6E3] px-6 py-3 text-[12px] font-semibold text-[#121214] transition-all hover:bg-white hover:scale-[1.02] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+          className="shrink-0 rounded-[1.2rem] bg-[#B99A6B] px-6 py-3.5 text-[12px] font-semibold text-[#121214] shadow-[inset_0_2px_4px_rgba(255,255,255,0.4),0_4px_12px_rgba(185,154,107,0.3)] transition-all hover:bg-[#C4A77D] active:shadow-[inset_0_4px_8px_rgba(0,0,0,0.2)] active:translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
         >
           {status === "loading" ? "Joining..." : status === "success" ? "Joined" : "Get early access"}
         </button>
       </form>
-      
       {message && (
-        <p className={`mt-3 text-[12px] ${status === "error" ? "text-red-400" : "text-[#B99A6B]"}`}>
+        <p className={`mt-4 text-[12px] font-medium ${status === "error" ? "text-red-400" : "text-[#B99A6B]"}`}>
           {message}
         </p>
       )}

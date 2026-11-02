@@ -1,35 +1,19 @@
 ﻿"use client";
 
-import { useRef } from "react";
+import { ReactNode } from "react";
 
-export function SpotlightCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  const divRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!divRef.current) return;
-    const rect = divRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    divRef.current.style.setProperty("--mouse-x", `${x}px`);
-    divRef.current.style.setProperty("--mouse-y", `${y}px`);
-  };
-
+export function ClayCard({ children, className = "" }: { children: ReactNode, className?: string }) {
   return (
     <div
-      ref={divRef}
-      onMouseMove={handleMouseMove}
-      className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-sm transition-all duration-500 hover:border-[#B99A6B]/40 hover:bg-white/[0.04] ${className}`}
+      className={`
+        relative rounded-[2rem] bg-[#1C1C21] 
+        shadow-[inset_0_2px_4px_rgba(255,255,255,0.06),0_16px_32px_rgba(0,0,0,0.4)] 
+        transition-all duration-300 
+        hover:-translate-y-1 hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.08),0_20px_40px_rgba(0,0,0,0.5)]
+        ${className}
+      `}
     >
-      {/* The Spotlight Glow */}
-      <div
-        className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-        style={{
-          background: `radial-gradient(600px circle at var(--mouse-x) var(--mouse-y), rgba(185, 154, 107, 0.15), transparent 40%)`,
-        }}
-      />
-      
-      {/* Card Content */}
-      <div className="relative z-10 p-8 h-full">
+      <div className="p-8 h-full">
         {children}
       </div>
     </div>

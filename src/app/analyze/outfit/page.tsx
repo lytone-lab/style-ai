@@ -3,8 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ChangeEvent, CSSProperties, DragEvent, useEffect, useState } from "react";
-import ShareCard from "@/components/ShareCard";
-import styles from "./outfit-check.module.css";
 
 type OutfitCheckResult = {
   detected_items: string[];
@@ -14,11 +12,7 @@ type OutfitCheckResult = {
   three_fixes: [string, string, string];
 };
 
-const LOADING_MESSAGES = [
-  "Scanning colors...",
-  "Checking contrast harmony...",
-  "Writing styling tips...",
-];
+const LOADING_MESSAGES = ["Scanning colors...", "Checking contrast harmony...", "Writing styling tips..."];
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -26,18 +20,11 @@ function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
   if (typeof value !== "object" || value === null) return false;
   const result = value as Record<string, unknown>;
   return (
-    Array.isArray(result.detected_items) &&
-    result.detected_items.every((item) => typeof item === "string") &&
-    Array.isArray(result.dominant_colors) &&
-    result.dominant_colors.every((color) => typeof color === "string") &&
-    typeof result.harmony_score === "number" &&
-    Number.isFinite(result.harmony_score) &&
-    result.harmony_score >= 0 &&
-    result.harmony_score <= 100 &&
+    Array.isArray(result.detected_items) && result.detected_items.every((item) => typeof item === "string") &&
+    Array.isArray(result.dominant_colors) && result.dominant_colors.every((color) => typeof color === "string") &&
+    typeof result.harmony_score === "number" && Number.isFinite(result.harmony_score) && result.harmony_score >= 0 && result.harmony_score <= 100 &&
     typeof result.occasion_fit === "string" &&
-    Array.isArray(result.three_fixes) &&
-    result.three_fixes.length === 3 &&
-    result.three_fixes.every((fix) => typeof fix === "string")
+    Array.isArray(result.three_fixes) && result.three_fixes.length === 3 && result.three_fixes.every((fix) => typeof fix === "string")
   );
 }
 
@@ -51,275 +38,181 @@ export default function OutfitAnalysisPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!file) {
-      setPreviewUrl(null);
-      return;
-    }
-
+    if (!file) { setPreviewUrl(null); return; }
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
   useEffect(() => {
-    if (!isLoading) {
-      setLoadingIndex(0);
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setLoadingIndex((index) => (index + 1) % LOADING_MESSAGES.length);
-    }, 1700);
+    if (!isLoading) { setLoadingIndex(0); return; }
+    const intervalId = window.setInterval(() => { setLoadingIndex((i) => (i + 1) % LOADING_MESSAGES.length); }, 1700);
     return () => window.clearInterval(intervalId);
   }, [isLoading]);
 
   const selectFile = (selectedFile: File | undefined) => {
     if (!selectedFile) return;
-    setErrorMessage(null);
-    setResult(null);
-
-    if (!ACCEPTED_TYPES.includes(selectedFile.type)) {
-      setFile(null);
-      setErrorMessage("Choose a JPEG, PNG, or WebP image.");
-      return;
-    }
-    if (selectedFile.size > MAX_FILE_BYTES) {
-      setFile(null);
-      setErrorMessage("Choose an image smaller than 4 MB.");
-      return;
-    }
+    setErrorMessage(null); setResult(null);
+    if (!ACCEPTED_TYPES.includes(selectedFile.type)) { setFile(null); setErrorMessage("Choose a JPEG, PNG, or WebP image."); return; }
+    if (selectedFile.size > MAX_FILE_BYTES) { setFile(null); setErrorMessage("Choose an image smaller than 4 MB."); return; }
     setFile(selectedFile);
   };
 
-  const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => {
-    selectFile(event.target.files?.[0]);
-    event.target.value = "";
-  };
-
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragging(false);
-    selectFile(event.dataTransfer.files[0]);
-  };
-
-  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setIsDragging(true);
-  };
+  const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => { selectFile(event.target.files?.[0]); event.target.value = ""; };
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); selectFile(event.dataTransfer.files[0]); };
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setIsDragging(true); };
 
   const analyzeOutfit = async () => {
     if (!file || isLoading) return;
-
-    setIsLoading(true);
-    setErrorMessage(null);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append("image", file);
-
+    setIsLoading(true); setErrorMessage(null); setResult(null);
+    const formData = new FormData(); formData.append("image", file);
     try {
-      const response = await fetch("/api/outfit-check", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch("/api/outfit-check", { method: "POST", body: formData });
       const payload: unknown = await response.json();
-
       if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload !== null &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "We couldn't analyze that outfit. Please try again.";
+        const message = typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string" ? payload.error : "We couldn't analyze that outfit. Please try again.";
         throw new Error(message);
       }
-
-      if (!isOutfitCheckResult(payload)) {
-        throw new Error("The outfit analysis returned an unexpected response.");
-      }
+      if (!isOutfitCheckResult(payload)) throw new Error("The outfit analysis returned an unexpected response.");
       setResult(payload);
     } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Something went wrong. Please try again.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+      setErrorMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+    } finally { setIsLoading(false); }
   };
 
-  const scoreStyle = result
-    ? ({ "--score": `${result.harmony_score}%` } as CSSProperties)
-    : undefined;
+  const scoreStyle = result ? ({ "--score": `${result.harmony_score}%` } as CSSProperties) : undefined;
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <Link className={styles.wordmark} href="/" aria-label="The AI Style App home">
-          STYLE<span>.</span>AI
-        </Link>
-        <Link className={styles.backLink} href="/analyze/color">
-          Color analysis <span aria-hidden="true">↗</span>
-        </Link>
-      </header>
+    <main className="min-h-screen bg-[#151518] px-6 py-12 text-[#E8E6E3] selection:bg-[#B99A6B]/30">
+      <div className="mx-auto max-w-6xl">
+        <header className="mb-12 flex justify-between items-center">
+          <Link href="/" className="text-[20px] font-semibold tracking-[0.1em] drop-shadow-md">
+            STYLE<span className="text-[#B99A6B]">.</span>AI
+          </Link>
+          <Link href="/analyze/color" className="text-[12px] font-medium uppercase tracking-[0.16em] text-[#8B8B90] transition-all px-5 py-2.5 rounded-2xl bg-[#1C1C21] shadow-[inset_0_2px_4px_rgba(255,255,255,0.05),0_4px_10px_rgba(0,0,0,0.3)] hover:text-[#E8E6E3]">
+            Color analysis ↗
+          </Link>
+        </header>
 
-      <section className={styles.content} aria-labelledby="outfit-title">
-        <div className={styles.intro}>
-          <p className={styles.eyebrow}>YOUR OUTFIT CHECK</p>
-          <h1 id="outfit-title">A second opinion,<br /><em>with style.</em></h1>
-          <p className={styles.description}>
-            Share a look and get thoughtful, clothing-focused notes on color, harmony, and easy ways
-            to make it yours.
+        <div className="mb-12 text-center max-w-2xl mx-auto">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[#B99A6B] mb-4">Your Outfit Check</p>
+          <h1 className="text-4xl sm:text-5xl font-medium tracking-tight mb-4">A second opinion, <br/><span className="italic text-[#B99A6B]">with style.</span></h1>
+          <p className="text-[15px] text-[#8B8B90] leading-relaxed">
+            Share a look and get thoughtful, clothing-focused notes on color, harmony, and easy ways to make it yours.
           </p>
         </div>
 
-        <div className={styles.workspace}>
-          <section className={styles.uploadCard} aria-label="Upload an outfit image">
-            <div className={styles.cardHeading}>
-              <span className={styles.step}>01</span>
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Upload Card */}
+          <div className="relative rounded-[2rem] bg-[#1C1C21] shadow-[inset_0_2px_4px_rgba(255,255,255,0.06),0_16px_32px_rgba(0,0,0,0.4)] p-8">
+            <div className="flex items-center gap-4 mb-6">
+              <span className="h-10 w-10 rounded-2xl bg-[#151518] shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] flex items-center justify-center text-[13px] font-bold text-[#B99A6B]">01</span>
               <div>
-                <h2>Your look</h2>
-                <p>One outfit, one honest opinion.</p>
+                <h2 className="text-[16px] font-medium">Your look</h2>
+                <p className="text-[12px] text-[#8B8B90]">One outfit, one honest opinion.</p>
               </div>
             </div>
 
             <div
-              className={`relative ${styles.dropzone} ${isDragging ? styles.dropzoneActive : ""} ${file ? styles.dropzoneSelected : ""}`}              onDragOver={handleDragOver}
-              onDragEnter={handleDragOver}
-              onDragLeave={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                  setIsDragging(false);
-                }
-              }}
+              className={`relative aspect-[3/4] w-full overflow-hidden rounded-[1.5rem] bg-[#151518] shadow-[inset_4px_4px_10px_rgba(0,0,0,0.6),inset_-4px_-4px_10px_rgba(255,255,255,0.03)] transition-all ${isDragging ? "ring-2 ring-[#B99A6B]" : ""}`}
+              onDragOver={handleDragOver} onDragEnter={handleDragOver}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDragging(false); }}
               onDrop={handleDrop}
             >
               {previewUrl ? (
-                <Image
-                  className={styles.preview}
-                  src={previewUrl}
-                  alt="Selected outfit preview"
-                  width={720}
-                  height={900}
-                  unoptimized
-                />
+                <Image className="object-cover w-full h-full" src={previewUrl} alt="Selected outfit preview" width={720} height={900} unoptimized />
               ) : (
-                <span className={styles.uploadPrompt}>
-                  <span className={styles.uploadIcon} aria-hidden="true">↑</span>
-                  <strong>Drop your outfit photo here</strong>
-                  <span>or tap to choose from your camera roll</span>
-                  <span className={styles.fileHint}>JPEG, PNG or WebP · up to 4 MB</span>
-                </span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center p-6">
+                  <span className="text-3xl text-[#B99A6B]">↑</span>
+                  <strong className="text-[14px]">Drop your outfit photo here</strong>
+                  <span className="text-[12px] text-[#8B8B90]">or tap to choose from your camera roll</span>
+                  <span className="text-[10px] uppercase tracking-wider text-[#55555A] mt-2">JPEG, PNG or WebP · up to 4 MB</span>
+                </div>
               )}
-              {previewUrl && <span className={styles.changePhoto}>Change photo</span>}
-              <input
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50"
-                type="file"
-                accept="image/*"
-                onChange={handleFileInput}
-                aria-label={file ? `Selected image: ${file.name}. Choose a different image` : "Choose or drop an outfit photo"}
-              />
+              <input className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" type="file" accept="image/*" onChange={handleFileInput} />
             </div>
 
-            {file && <p className={styles.fileName}>{file.name}</p>}
+            {file && <p className="mt-4 text-[12px] text-[#8B8B90] text-center truncate">{file.name}</p>}
 
             <button
-              className={styles.analyzeButton}
-              type="button"
-              disabled={!file || isLoading}
-              onClick={analyzeOutfit}
+              className="mt-6 w-full rounded-[1.2rem] bg-[#B99A6B] py-4 text-[12px] font-semibold text-[#121214] shadow-[inset_0_2px_4px_rgba(255,255,255,0.4),0_4px_12px_rgba(185,154,107,0.3)] transition-all hover:bg-[#C4A77D] active:shadow-[inset_0_4px_8px_rgba(0,0,0,0.2)] active:translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex justify-center items-center gap-2"
+              type="button" disabled={!file || isLoading} onClick={analyzeOutfit}
             >
-              {isLoading ? "Putting the look together..." : "Analyze Outfit"}
-              {!isLoading && <span aria-hidden="true">↗</span>}
+              {isLoading ? "Putting the look together..." : "Analyze Outfit"} {!isLoading && <span>↗</span>}
             </button>
 
             {isLoading && (
-              <p className={styles.loadingMessage} role="status" aria-live="polite">
-                <span className={styles.loadingDot} />
+              <p className="mt-4 text-[12px] text-[#B99A6B] text-center animate-pulse" role="status" aria-live="polite">
                 {LOADING_MESSAGES[loadingIndex]}
               </p>
             )}
-            {errorMessage && <p className={styles.errorMessage} role="alert">{errorMessage}</p>}
-            <p className={styles.privacyNote}>
-              Your photo is analyzed for clothing and styling only.
-            </p>
-          </section>
+            {errorMessage && <p className="mt-4 text-[12px] text-red-400 text-center" role="alert">{errorMessage}</p>}
+            <p className="mt-6 text-[11px] text-[#55555A] text-center">Your photo is analyzed for clothing and styling only.</p>
+          </div>
 
-          <section className={styles.results} aria-label="Outfit analysis results" aria-live="polite">
+          {/* Results Column */}
+          <div className="relative rounded-[2rem] bg-[#1C1C21] shadow-[inset_0_2px_4px_rgba(255,255,255,0.06),0_16px_32px_rgba(0,0,0,0.4)] p-8">
             {result ? (
-              <>
-                <div className={styles.resultHeader}>
-                  <p className={styles.eyebrow}>THE STYLE NOTES</p>
-                  <h2>Here&#39;s the read.</h2>
+              <div className="flex flex-col gap-8">
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.3em] text-[#B99A6B] mb-2">The Style Notes</p>
+                  <h2 className="text-2xl font-medium">Here&apos;s the read.</h2>
                 </div>
 
-                <div className={styles.summaryGrid}>
-                  <article className={styles.scoreCard}>
-                    <div className={styles.scoreDial} style={scoreStyle} aria-label={`Harmony score ${result.harmony_score} out of 100`}>                      <div className={styles.scoreInner}>
-                        <strong>{result.harmony_score}</strong>
-                        <span>HARMONY</span>
+                <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="bg-[#151518] rounded-[1.5rem] shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] p-6 flex flex-col items-center justify-center text-center">
+                    <div className="relative h-24 w-24 rounded-full flex items-center justify-center mb-3"
+                         style={{ background: `conic-gradient(#B99A6B var(--score), #1C1C21 0)`, ...scoreStyle }}>
+                      <div className="absolute inset-1 bg-[#151518] rounded-full flex flex-col items-center justify-center shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]">
+                        <strong className="text-2xl font-semibold text-[#E8E6E3]">{result.harmony_score}</strong>
+                        <span className="text-[9px] uppercase tracking-wider text-[#8B8B90]">Harmony</span>
                       </div>
                     </div>
-                    <p className={styles.scoreCaption}>How the pieces work together</p>
-                  </article>
-
-                  <article className={styles.detailCard}>
-                    <p className={styles.blockLabel}>THE PIECES</p>
-                    <ul className={styles.itemList}>
-                      {result.detected_items.map((item, index) => (
-                        <li key={`${item}-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                    <div className={styles.colorBlock}>
-                      <p className={styles.blockLabel}>COLOR STORY</p>
-                      <div className={styles.colorList}>
-                        {result.dominant_colors.map((color, index) => (
-                          <span className={styles.colorTag} key={`${color}-${index}`}>{color}</span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className={styles.occasionBlock}>
-                      <p className={styles.blockLabel}>OCCASION FIT</p>
-                      <p>{result.occasion_fit}</p>
-                    </div>
-                  </article>
-                </div>
-
-                <div className={styles.fixesSection}>
-                  <div className={styles.fixesHeading}>
-                    <p className={styles.eyebrow}>SMALL MOVES, BIG DIFFERENCE</p>
-                    <h2>Three ways to take it further.</h2>
+                    <p className="text-[11px] text-[#8B8B90]">How the pieces work together</p>
                   </div>
-                  <ol className={styles.fixesList}>
-                    {result.three_fixes.map((fix, index) => (
-                      <li className={styles.fixCard} key={`${fix}-${index}`}>
-                        <span className={styles.fixNumber}>0{index + 1}</span>
-                        <p>{fix}</p>
-                      </li>
-                    ))}
-                  </ol>
+
+                  <div className="bg-[#151518] rounded-[1.5rem] shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] p-6">
+                    <p className="text-[10px] uppercase tracking-widest text-[#8B8B90] mb-3">The Pieces</p>
+                    <ul className="space-y-1.5 mb-5">
+                      {result.detected_items.map((item, i) => <li key={i} className="text-[13px] font-medium capitalize">{item}</li>)}
+                    </ul>
+                    <p className="text-[10px] uppercase tracking-widest text-[#8B8B90] mb-2">Color Story</p>
+                    <div className="flex flex-wrap gap-1.5 mb-5">
+                      {result.dominant_colors.map((color, i) => <span key={i} className="px-2.5 py-1 rounded-full bg-[#1C1C21] text-[10px] shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)] text-[#E8E6E3]">{color}</span>)}
+                    </div>
+                    <p className="text-[10px] uppercase tracking-widest text-[#8B8B90] mb-1">Occasion Fit</p>
+                    <p className="text-[12px] text-[#8B8B90]">{result.occasion_fit}</p>
+                  </div>
                 </div>
 
-                <div className={styles.shareCardBlock}>
-                  <ShareCard
-                    undertone="Personal style"
-                    harmonyScore={result.harmony_score}
-                    dominantColors={result.dominant_colors}
-                  />
+                <div>
+                  <div className="mb-4">
+                    <p className="text-[11px] uppercase tracking-[0.3em] text-[#B99A6B] mb-1">Small moves, big difference</p>
+                    <h3 className="text-[16px] font-medium">Three ways to take it further.</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {result.three_fixes.map((fix, i) => (
+                      <div key={i} className="flex gap-4 bg-[#151518] rounded-2xl p-4 shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)]">
+                        <span className="text-[12px] font-bold text-[#B99A6B] shrink-0 mt-0.5">0{i+1}</span>
+                        <p className="text-[13px] text-[#C9C7C4] leading-relaxed">{fix}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </>
+              </div>
             ) : (
-              <div className={styles.emptyState}>
-                <div className={styles.emptyMark} aria-hidden="true">S<span>.</span></div>
-                <p className={styles.eyebrow}>YOUR STYLE, YOUR CALL</p>
-                <h2>A little clarity<br />goes a long way.</h2>
-                <p>Upload a look to see its color harmony, the pieces that make it, and three ideas to try next.</p>
+              <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                <div className="h-16 w-16 rounded-3xl bg-[#151518] shadow-[inset_2px_2px_5px_rgba(0,0,0,0.5),inset_-2px_-2px_5px_rgba(255,255,255,0.05)] flex items-center justify-center text-2xl text-[#B99A6B] mb-6">
+                  S<span className="text-[14px]">.</span>
+                </div>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-[#B99A6B] mb-2">Your style, your call</p>
+                <h2 className="text-xl font-medium mb-2">A little clarity goes a long way.</h2>
+                <p className="text-[13px] text-[#8B8B90] max-w-xs">Upload a look to see its color harmony, the pieces that make it, and three ideas to try next.</p>
               </div>
             )}
-          </section>
+          </div>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
