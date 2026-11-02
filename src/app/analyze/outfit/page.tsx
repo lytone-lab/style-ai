@@ -117,7 +117,8 @@ export default function OutfitAnalysisPage() {
       setResult(payload);
     } catch (error) {
       console.error("Full Error Object:", error);
-      const err = error as { message?: string; error_description?: string; error?: string }; const exactMessage = err?.message || err?.error_description || err?.error || "Something went wrong.";
+      const err = error as { message?: string; error_description?: string; error?: string };
+      const exactMessage = err?.message || err?.error_description || err?.error || "Something went wrong.";
       setErrorMessage(exactMessage);
     } finally { setIsLoading(false); }
   };
@@ -177,14 +178,12 @@ export default function OutfitAnalysisPage() {
           <div className="flex flex-col h-full gap-5 pb-10 animate-slide-up">
             <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-2">Analysis <br />complete.</h1>
             
-            {/* 1. Vibe & Archetype Card */}
             <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center text-center">
               <p className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] mb-3">{result.vibe}</p>
               <h2 className="text-[28px] font-black tracking-tighter mb-2 leading-none">{result.style_archetype}</h2>
               <p className="text-[14px] text-[#888888] leading-relaxed max-w-[260px]">{result.occasion_fit}</p>
             </div>
 
-            {/* 2. Massive Score Card */}
             <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center">
               <div className="relative h-48 w-48 rounded-full flex items-center justify-center mb-2" style={{ background: `conic-gradient(#FFFFFF ${result.harmony_score}%, #222222 0)` }}>
                 <div className="absolute inset-2 bg-[#111111] rounded-full flex flex-col items-center justify-center">
@@ -194,7 +193,6 @@ export default function OutfitAnalysisPage() {
               </div>
             </div>
 
-            {/* 3. Three Fixes Cards */}
             <div className="flex flex-col gap-3 mt-2">
               <p className="text-[11px] font-bold uppercase tracking-widest text-[#555555] ml-2">Three Fixes</p>
               {result.three_fixes.map((fix, i) => (

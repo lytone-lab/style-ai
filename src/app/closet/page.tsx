@@ -93,15 +93,12 @@ export default function ClosetPage() {
                 <div key={i} className="relative aspect-[3/4] w-full rounded-[1.5rem] overflow-hidden bg-[#111111] border border-[#222222]">
                   {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" unoptimized />}
                   
-                  {/* Dark Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
-                  {/* Wear Count Badge (Bottom Left) */}
                   <div className="absolute bottom-3 left-3 bg-white/20 backdrop-blur-md border border-white/10 px-2 py-1 rounded-lg">
                     <span className="text-[10px] font-bold text-[#FFFFFF]">{item.wearCount} Wears</span>
                   </div>
 
-                  {/* Item Name and Cost (Bottom Right) */}
                   <div className="absolute bottom-3 right-3 flex flex-col items-end">
                     <span className={`text-[12px] font-black ${Number(cpw) < 10 ? "text-[#00FF66]" : "text-[#FFFFFF]"}`}>
                       ${cpw}

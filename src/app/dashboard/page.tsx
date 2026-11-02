@@ -114,7 +114,6 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      {/* Bottom Navigation - TikTok Squircle Button */}
       <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] grid grid-cols-4 items-center relative">
         <Link href="/dashboard" className="flex flex-col items-center gap-1">
           <span className="text-[20px] text-[#FFFFFF]">◉</span>
@@ -133,7 +132,6 @@ export default function MobileDashboardPage() {
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Studio</span>
         </Link>
 
-        {/* Squircle + Button */}
         <Link href="/analyze/outfit" className="absolute -top-5 left-1/2 -translate-x-1/2 h-[54px] w-[54px] bg-[#FFFFFF] rounded-[1.2rem] flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform">
           <span className="text-[28px] font-black text-[#000000] font-sans font-light mb-1">+</span>
         </Link>
