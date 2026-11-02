@@ -67,6 +67,18 @@ export default function OutfitAnalysisPage() {
       }
       if (!isOutfitCheckResult(payload)) throw new Error("The outfit analysis returned an unexpected response.");
       setResult(payload);
+      
+      // SAVE TO LOCAL STORAGE
+      const newScan = {
+        id: Date.now().toString(),
+        title: payload.detected_items.slice(0, 2).join(" + "),
+        score: payload.harmony_score,
+        colors: payload.dominant_colors.slice(0, 3),
+        date: new Date().toISOString(),
+      };
+      const existing = JSON.parse(localStorage.getItem("style_ai_history") || "[]");
+      localStorage.setItem("style_ai_history", JSON.stringify([newScan, ...existing].slice(0, 20)));
+
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally { setIsLoading(false); }
@@ -76,7 +88,6 @@ export default function OutfitAnalysisPage() {
 
   return (
     <main className="min-h-screen bg-[#000000] text-[#FFFFFF] flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222]">
         <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">
           ← Back
@@ -95,7 +106,6 @@ export default function OutfitAnalysisPage() {
               Drop a photo of your outfit below. Our AI will analyze the silhouette, harmony, and occasion fit.
             </p>
 
-            {/* Upload Box */}
             <div
               className={`relative flex-1 w-full overflow-hidden rounded-[2rem] bg-[#111111] border-2 transition-all ${isDragging ? "border-[#FFFFFF]" : "border-[#222222] border-dashed"} flex flex-col items-center justify-center`}
               onDragOver={handleDragOver} onDragEnter={handleDragOver}
@@ -122,7 +132,6 @@ export default function OutfitAnalysisPage() {
               Analysis <br />complete.
             </h1>
             
-            {/* Massive Score Display */}
             <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center mb-4">
               <div className="relative h-40 w-40 rounded-full flex items-center justify-center mb-4"
                    style={{ background: `conic-gradient(#FFFFFF var(--score), #222222 0)`, ...scoreStyle }}>
@@ -134,7 +143,6 @@ export default function OutfitAnalysisPage() {
               <p className="text-[13px] text-[#888888] text-center max-w-[200px]">{result.occasion_fit}</p>
             </div>
 
-            {/* Data Cards */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-3">Pieces</p>
@@ -150,7 +158,6 @@ export default function OutfitAnalysisPage() {
               </div>
             </div>
 
-            {/* Three Fixes */}
             <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 mb-8">
               <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-3">Three Fixes</p>
               <div className="space-y-3">
@@ -166,7 +173,6 @@ export default function OutfitAnalysisPage() {
         )}
       </div>
 
-      {/* Bottom Action Area */}
       <div className="px-6 pb-8 pt-4 shrink-0 bg-gradient-to-t from-black via-black to-transparent">
         {!result ? (
           <button
@@ -177,12 +183,12 @@ export default function OutfitAnalysisPage() {
             {isLoading ? "Analyzing..." : "Analyze Outfit"}
           </button>
         ) : (
-          <button
-            onClick={() => { setFile(null); setResult(null); }}
+          <Link
+            href="/dashboard"
             className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px]"
           >
-            Scan Another
-          </button>
+            Go to Dashboard
+          </Link>
         )}
       </div>
     </main>
