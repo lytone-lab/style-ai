@@ -3,6 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ChangeEvent, DragEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type OutfitCheckResult = {
   detected_items: string[];
@@ -16,13 +18,7 @@ type OutfitCheckResult = {
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-const LOADING_STEPS = [
-  "Isolating garments & layers",
-  "Detecting fabrics & textures",
-  "Mapping color distribution",
-  "Calculating harmony score",
-];
+const LOADING_STEPS = ["Isolating garments & layers", "Detecting fabrics & textures", "Mapping color distribution", "Calculating harmony score"];
 
 function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
   if (typeof value !== "object" || value === null) return false;
@@ -31,14 +27,13 @@ function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
     Array.isArray(result.detected_items) && result.detected_items.every((item) => typeof item === "string") &&
     Array.isArray(result.dominant_colors) && result.dominant_colors.every((color) => typeof color === "string") &&
     typeof result.harmony_score === "number" && Number.isFinite(result.harmony_score) && result.harmony_score >= 0 && result.harmony_score <= 100 &&
-    typeof result.occasion_fit === "string" &&
-    Array.isArray(result.three_fixes) && result.three_fixes.length === 3 && result.three_fixes.every((fix) => typeof fix === "string") &&
-    typeof result.vibe === "string" &&
-    typeof result.style_archetype === "string"
+    typeof result.occasion_fit === "string" && typeof result.vibe === "string" && typeof result.style_archetype === "string" &&
+    Array.isArray(result.three_fixes) && result.three_fixes.length === 3
   );
 }
 
 export default function OutfitAnalysisPage() {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<OutfitCheckResult | null>(null);
@@ -58,9 +53,7 @@ export default function OutfitAnalysisPage() {
     let interval: NodeJS.Timeout;
     if (isLoading) {
       setLoadingStep(0);
-      interval = setInterval(() => {
-        setLoadingStep((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev));
-      }, 1000);
+      interval = setInterval(() => { setLoadingStep((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev)); }, 1000);
     }
     return () => clearInterval(interval);
   }, [isLoading]);
@@ -80,6 +73,15 @@ export default function OutfitAnalysisPage() {
   const analyzeOutfit = async () => {
     if (!file || isLoading) return;
     setIsLoading(true); setErrorMessage(null); setResult(null);
+    
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+
     const formData = new FormData(); formData.append("image", file);
     
     try {
@@ -89,24 +91,34 @@ export default function OutfitAnalysisPage() {
       await new Promise(resolve => setTimeout(resolve, 4000)); 
 
       if (!response.ok) {
-        const message = typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string" ? payload.error : "We couldn't analyze that outfit. Please try again.";
+        const message = typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string" ? payload.error : "We couldn't analyze that outfit.";
         throw new Error(message);
       }
       if (!isOutfitCheckResult(payload)) throw new Error("The outfit analysis returned an unexpected response.");
-      setResult(payload);
       
-      const newScan = {
-        id: Date.now().toString(),
-        title: payload.detected_items.slice(0, 2).join(" + "),
-        score: payload.harmony_score,
-        colors: payload.dominant_colors.slice(0, 3),
-        date: new Date().toISOString(),
-      };
-      const existing = JSON.parse(localStorage.getItem("style_ai_history") || "[]");
-      localStorage.setItem("style_ai_history", JSON.stringify([newScan, ...existing].slice(0, 20)));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from('outfits').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('outfits').getPublicUrl(fileName);
 
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      const { error: dbError } = await supabase.from('scans').insert({
+        user_id: user.id,
+        image_url: publicUrl,
+        harmony_score: payload.harmony_score,
+        detected_items: payload.detected_items,
+        vibe: payload.vibe,
+        style_archetype: payload.style_archetype,
+      });
+      
+      if (dbError) throw dbError;
+
+      setResult(payload);
+    } catch (error: any) {
+      console.error("Full Error Object:", error);
+      const exactMessage = error?.message || error?.error_description || error?.error || "Something went wrong.";
+      setErrorMessage(exactMessage);
     } finally { setIsLoading(false); }
   };
 
@@ -137,7 +149,7 @@ export default function OutfitAnalysisPage() {
   return (
     <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF]">
       <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
-        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">← Back</Link>
+        <Link href="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">← Back</Link>
         <span className="text-[14px] font-black uppercase tracking-tighter">Outfit Check</span>
         <div className="w-10"></div>
       </header>
@@ -148,71 +160,49 @@ export default function OutfitAnalysisPage() {
             <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-3">Scan your <br />fit.</h1>
             <p className="text-[14px] text-[#888888] mb-8 leading-relaxed">Drop a photo of your outfit below. Our AI will analyze the silhouette, harmony, and occasion fit.</p>
 
-            <div
-              className={`relative flex-1 w-full overflow-hidden rounded-[2rem] bg-[#111111] border-2 transition-all ${isDragging ? "border-[#FFFFFF]" : "border-[#222222] border-dashed"} flex flex-col items-center justify-center`}
-              onDragOver={handleDragOver} onDragEnter={handleDragOver}
-              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDragging(false); }}
-              onDrop={handleDrop}
-            >
+            <div className={`relative flex-1 w-full overflow-hidden rounded-[2rem] bg-[#111111] border-2 transition-all ${isDragging ? "border-[#FFFFFF]" : "border-[#222222] border-dashed"} flex flex-col items-center justify-center`} onDragOver={handleDragOver} onDragEnter={handleDragOver} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDragging(false); }} onDrop={handleDrop}>
               {previewUrl ? (
                 <Image className="object-cover w-full h-full absolute inset-0" src={previewUrl} alt="Outfit preview" width={720} height={900} unoptimized />
               ) : (
                 <div className="flex flex-col items-center gap-3 text-center p-6">
                   <span className="text-4xl text-[#FFFFFF] mb-2">+</span>
                   <span className="text-[14px] font-bold uppercase tracking-widest text-[#FFFFFF]">Tap to Upload</span>
-                  <span className="text-[12px] text-[#888888]">JPEG, PNG or WebP</span>
                 </div>
               )}
               <input className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" type="file" accept="image/*" onChange={handleFileInput} />
             </div>
-            {errorMessage && <p className="mt-4 text-[12px] text-red-500 font-medium text-center" role="alert">{errorMessage}</p>}
+            {errorMessage && <p className="mt-4 text-[13px] text-red-500 font-bold text-center bg-red-500/10 p-3 rounded-xl border border-red-500/20" role="alert">{errorMessage}</p>}
           </div>
         ) : (
-          <div className="flex flex-col h-full animate-slide-up">
-            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-6">Analysis <br />complete.</h1>
+          <div className="flex flex-col h-full gap-5 pb-10 animate-slide-up">
+            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-2">Analysis <br />complete.</h1>
             
-            {/* NEW: Vibe & Archetype Card */}
-            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6 mb-4 flex flex-col items-center text-center">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66] mb-2">{result.vibe}</p>
-              <h2 className="text-[24px] font-black tracking-tighter mb-1">{result.style_archetype}</h2>
-              <p className="text-[13px] text-[#888888] leading-relaxed">{result.occasion_fit}</p>
+            {/* 1. Vibe & Archetype Card */}
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center text-center">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] mb-3">{result.vibe}</p>
+              <h2 className="text-[28px] font-black tracking-tighter mb-2 leading-none">{result.style_archetype}</h2>
+              <p className="text-[14px] text-[#888888] leading-relaxed max-w-[260px]">{result.occasion_fit}</p>
             </div>
 
-            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center mb-4">
-              <div className="relative h-40 w-40 rounded-full flex items-center justify-center mb-4"
-                   style={{ background: `conic-gradient(#FFFFFF ${result.harmony_score}%, #222222 0)` }}>
+            {/* 2. Massive Score Card */}
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center">
+              <div className="relative h-48 w-48 rounded-full flex items-center justify-center mb-2" style={{ background: `conic-gradient(#FFFFFF ${result.harmony_score}%, #222222 0)` }}>
                 <div className="absolute inset-2 bg-[#111111] rounded-full flex flex-col items-center justify-center">
-                  <strong className="text-5xl font-black tracking-tighter">{result.harmony_score}</strong>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mt-1">Harmony</span>
+                  <strong className="text-6xl font-black tracking-tighter">{result.harmony_score}</strong>
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mt-1">Harmony</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-3">Pieces</p>
-                <ul className="space-y-1">
-                  {result.detected_items.map((item, i) => <li key={i} className="text-[13px] font-medium capitalize text-[#FFFFFF]">{item}</li>)}
-                </ul>
-              </div>
-              <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-3">Colors</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {result.dominant_colors.map((color, i) => <span key={i} className="px-2 py-1 bg-[#222222] text-[10px] font-bold uppercase tracking-wider rounded-md text-[#FFFFFF]">{color}</span>)}
+            {/* 3. Three Fixes Cards */}
+            <div className="flex flex-col gap-3 mt-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#555555] ml-2">Three Fixes</p>
+              {result.three_fixes.map((fix, i) => (
+                <div key={i} className="bg-[#111111] border border-[#222222] rounded-[1.5rem] p-5 flex gap-4">
+                  <span className="text-[14px] font-black text-[#00FF66] mt-0.5">0{i+1}</span>
+                  <p className="text-[14px] text-[#CCCCCC] leading-relaxed">{fix}</p>
                 </div>
-              </div>
-            </div>
-
-            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 mb-8">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-3">Three Fixes</p>
-              <div className="space-y-3">
-                {result.three_fixes.map((fix, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-[12px] font-black text-[#FFFFFF]">0{i+1}</span>
-                    <p className="text-[13px] text-[#888888] leading-relaxed">{fix}</p>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
           </div>
         )}
