@@ -38,45 +38,50 @@ export default function AdminDashboardPage() {
   );
 
   return (
-    <main className="min-h-screen bg-[#000000] text-[#FFFFFF] px-6 py-12 md:px-12 font-sans">
-      <header className="flex justify-between items-center mb-12 border-b border-[#222222] pb-6">
+    <main className="min-h-screen bg-[#000000] text-[#FFFFFF] px-6 py-8 font-sans">
+      <header className="flex justify-between items-center mb-8 border-b border-[#222222] pb-6">
         <div>
-          <h1 className="text-[32px] font-black tracking-tighter">Admin Command Center</h1>
-          <p className="text-[#888888] text-sm mt-1">Full visibility into the Style AI ecosystem.</p>
+          <h1 className="text-[28px] font-black tracking-tighter leading-tight">Admin Center</h1>
+          <p className="text-[#888888] text-[12px] mt-1">Full ecosystem visibility.</p>
         </div>
-        <Link href="/dashboard" className="text-[12px] font-bold uppercase tracking-widest text-[#000000] bg-[#FFFFFF] px-6 py-3 rounded-xl hover:bg-[#E0E0E0] transition-colors">
-          Exit to App
+        <Link href="/dashboard" className="text-[10px] font-bold uppercase tracking-widest text-[#000000] bg-[#FFFFFF] px-4 py-2.5 rounded-xl hover:bg-[#E0E0E0] transition-colors">
+          Exit
         </Link>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="bg-[#111111] border border-[#222222] rounded-3xl p-8">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Users</p>
-          <p className="text-[48px] font-black text-[#00FF66] leading-none">{data?.profiles.length || 0}</p>
+      {/* Grid Stats */}
+      <div className="grid grid-cols-2 gap-3 mb-10">
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Users</p>
+          <p className="text-[32px] font-black text-[#00FF66] leading-none">{data?.profiles.length || 0}</p>
         </div>
-        <div className="bg-[#111111] border border-[#222222] rounded-3xl p-8">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Scans</p>
-          <p className="text-[48px] font-black text-[#FFFFFF] leading-none">{data?.scans.length || 0}</p>
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Scans</p>
+          <p className="text-[32px] font-black text-[#FFFFFF] leading-none">{data?.scans.length || 0}</p>
         </div>
-        <div className="bg-[#111111] border border-[#222222] rounded-3xl p-8">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mb-2">Waitlist Signups</p>
-          <p className="text-[48px] font-black text-[#FFFFFF] leading-none">{data?.waitlist.length || 0}</p>
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Waitlist Signups</p>
+          <p className="text-[32px] font-black text-[#FFFFFF] leading-none">{data?.waitlist.length || 0}</p>
         </div>
       </div>
 
-      <h2 className="text-xl font-bold tracking-tight mb-6">Global Outfit Feed</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Global Feed */}
+      <div className="flex justify-between items-end mb-4">
+        <h2 className="text-[18px] font-bold tracking-tight">Global Outfit Feed</h2>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 pb-10">
         {data?.scans.map((scan) => (
-          <div key={scan.id} className="bg-[#111111] border border-[#222222] rounded-2xl overflow-hidden">
+          <div key={scan.id} className="bg-[#111111] border border-[#222222] rounded-2xl overflow-hidden flex flex-col">
             <div className="relative aspect-[3/4] w-full bg-[#222222]">
               {scan.image_url && <Image src={scan.image_url} alt="Scan" fill className="object-cover" unoptimized />}
-            </div>
-            <div className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66]">{scan.vibe}</p>
-              <div className="flex justify-between items-end mt-2">
-                <span className="text-[12px] text-[#888888]">{new Date(scan.created_at).toLocaleDateString()}</span>
-                <span className="text-xl font-black text-[#FFFFFF]">{scan.harmony_score}</span>
+              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10">
+                <span className="text-[12px] font-black text-[#FFFFFF]">{scan.harmony_score}</span>
               </div>
+            </div>
+            <div className="p-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-[#00FF66] truncate">{scan.vibe}</p>
+              <p className="text-[10px] text-[#888888] mt-1">{new Date(scan.created_at).toLocaleDateString()}</p>
             </div>
           </div>
         ))}

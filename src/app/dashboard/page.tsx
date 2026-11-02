@@ -29,7 +29,7 @@ export default function MobileDashboardPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('scans')
         .select('*')
         .order('created_at', { ascending: false })
@@ -114,19 +114,28 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] flex items-center justify-around px-8 relative">
+      {/* Bottom Navigation - TikTok Squircle Button */}
+      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] grid grid-cols-4 items-center relative">
         <Link href="/dashboard" className="flex flex-col items-center gap-1">
           <span className="text-[20px] text-[#FFFFFF]">◉</span>
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#FFFFFF]">Home</span>
         </Link>
         
-        <Link href="/analyze/outfit" className="absolute -top-8 left-1/2 -translate-x-1/2 h-[68px] w-[68px] bg-[#FFFFFF] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform">
-          <span className="text-[32px] font-black text-[#000000]">+</span>
+        <Link href="/closet" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">👕</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Closet</span>
         </Link>
+
+        <div className="w-full h-full"></div>
 
         <Link href="/dashboard/try-on" className="flex flex-col items-center gap-1">
           <span className="text-[20px] text-[#888888]">✦</span>
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Studio</span>
+        </Link>
+
+        {/* Squircle + Button */}
+        <Link href="/analyze/outfit" className="absolute -top-5 left-1/2 -translate-x-1/2 h-[54px] w-[54px] bg-[#FFFFFF] rounded-[1.2rem] flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform">
+          <span className="text-[28px] font-black text-[#000000] font-sans font-light mb-1">+</span>
         </Link>
       </div>
     </main>
