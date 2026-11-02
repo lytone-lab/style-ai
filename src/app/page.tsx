@@ -1,332 +1,103 @@
-﻿"use client";
-
-import Image from "next/image";
-import Link from "next/link";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+﻿import Link from "next/link";
 import { WaitlistForm } from "@/components/waitlist-form";
-import styles from "./dashboard.module.css";
 
-type OutfitResult = {
-  detected_items: string[];
-  dominant_colors: string[];
-  harmony_score: number;
-};
-
-type HistoryEntry = {
-  id: string;
-  title: string;
-  score: number;
-  colors: string[];
-  previewUrl: string | null;
-  caption: string;
-  sampleColors?: [string, string];
-};
-
-const SAMPLE_HISTORY: HistoryEntry[] = [
-  {
-    id: "sample-1",
-    title: "Executive Classic Double-Breasted Blazer",
-    score: 84,
-    colors: ["#7d8790", "#282a2e", "#c5b7a3"],
-    previewUrl: null,
-    caption: "Sample look · Yesterday",
-    sampleColors: ["#4c5158", "#23252a"],
-  },
-  {
-    id: "sample-2",
-    title: "Soft Tailoring & Tonal Layers",
-    score: 78,
-    colors: ["#c2b9ae", "#7d776d", "#393b3e"],
-    previewUrl: null,
-    caption: "Sample look · 3 days ago",
-    sampleColors: ["#726d66", "#363638"],
-  },
-  {
-    id: "sample-3",
-    title: "Modern Minimal Weekend Edit",
-    score: 91,
-    colors: ["#d0cfc8", "#8d928e", "#27282a"],
-    previewUrl: null,
-    caption: "Sample look · 5 days ago",
-    sampleColors: ["#969992", "#404247"],
-  },
-];
-
-const METRICS = [
-  { name: "Palette Balance", score: 0, hint: "Awaiting scan" },
-  { name: "Silhouette Proportion", score: 0, hint: "Awaiting scan" },
-  { name: "Contrast Ratio", score: 0, hint: "Awaiting scan" },
-];
-
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const FALLBACK_COLORS = ["#9a9aa3", "#5a5a64", "#d0c4b1", "#777782"];
-
-function isOutfitResult(value: unknown): value is OutfitResult {
-  if (!value || typeof value !== "object") return false;
-  const result = value as Record<string, unknown>;
+export default function LandingPage() {
   return (
-    Array.isArray(result.detected_items) &&
-    result.detected_items.every((item) => typeof item === "string") &&
-    Array.isArray(result.dominant_colors) &&
-    result.dominant_colors.every((color) => typeof color === "string") &&
-    typeof result.harmony_score === "number" &&
-    Number.isFinite(result.harmony_score) &&
-    result.harmony_score >= 0 &&
-    result.harmony_score <= 100
-  );
-}
-
-function colorValue(value: string, index: number) {
-  return /^#[\da-f]{6}$/i.test(value) ? value : FALLBACK_COLORS[index % FALLBACK_COLORS.length];
-}
-
-function MetricRing({ name, score, hint }: (typeof METRICS)[number]) {
-  return (
-    <article className={styles.metricCard}>
-      <div
-        className={styles.metricRing}
-        style={{ "--metric-angle": `${score * 3.6}deg` } as React.CSSProperties}
-        role="progressbar"
-        aria-valuenow={score}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-label={`${name}: ${score > 0 ? score : "not analyzed"} out of 100`}
-      >
-        <div className={styles.metricRingInner}>{score > 0 ? score : "--"}</div>
-      </div>
-      <p className={styles.metricName}>{name}</p>
-      <p className={styles.metricHint}>{hint}</p>
-    </article>
-  );
-}
-
-export default function Home() {
-  const [history, setHistory] = useState(SAMPLE_HISTORY);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState("");
-  const [uploadError, setUploadError] = useState(false);
-  const objectUrls = useRef<string[]>([]);
-
-  useEffect(() => () => {
-    objectUrls.current.forEach((url) => URL.revokeObjectURL(url));
-  }, []);
-
-  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-
-    setUploadError(false);
-    setUploadMessage("");
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setUploadError(true);
-      setUploadMessage("Choose a JPEG, PNG, or WebP image.");
-      return;
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      setUploadError(true);
-      setUploadMessage("Choose an image smaller than 4 MB.");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    const previewUrl = URL.createObjectURL(file);
-    objectUrls.current.push(previewUrl);
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      const response = await fetch("/api/outfit-check", { method: "POST", body: formData });
-      let payload: unknown;
-      try {
-        payload = await response.json();
-      } catch {
-        throw new Error("The style service returned an unreadable response. Please try again.");
-      }
-
-      if (!response.ok) {
-        const message =
-          typeof payload === "object" &&
-          payload !== null &&
-          "error" in payload &&
-          typeof payload.error === "string"
-            ? payload.error
-            : "We couldn't analyze this outfit. Please try again.";
-        throw new Error(message);
-      }
-      if (!isOutfitResult(payload)) {
-        throw new Error("The style service returned an unexpected result.");
-      }
-
-      setHistory((current) => [
-        {
-          id: `${Date.now()}`,
-          title: payload.detected_items.slice(0, 2).join(" + ") || "Outfit analysis",
-          score: payload.harmony_score,
-          colors: payload.dominant_colors.slice(0, 4).map(colorValue),
-          previewUrl,
-          caption: "Just now · This session",
-        },
-        ...current.filter((entry) => !entry.id.startsWith("sample-")),
-      ]);
-      setUploadMessage("Your style scan was added to this session's history.");
-    } catch (error) {
-      setUploadError(true);
-      setUploadMessage(
-        error instanceof Error ? error.message : "Something went wrong. Please try again.",
-      );
-      URL.revokeObjectURL(previewUrl);
-      objectUrls.current = objectUrls.current.filter((url) => url !== previewUrl);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }
-
-  // Tie the top dial to the latest real scan, fallback to "--" if only samples exist
-  const latestScore = history[0]?.score;
-  const isRealScan = history[0] && !history[0].id.startsWith("sample-");
-
-  return (
-    <main className={styles.dashboard}>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/" aria-label="Style AI dashboard">
-          <span className={styles.brandMark} aria-hidden="true">S</span>
-          <span>Style AI</span>
+    <main className="min-h-screen bg-[#121214] text-[#E8E6E3] selection:bg-[#B99A6B]/30">
+      {/* Header */}
+      <header className="absolute top-0 w-full px-6 py-6 flex justify-between items-center z-10">
+        <Link href="/" className="text-[18px] font-semibold tracking-[0.1em]">
+          STYLE<span className="text-[#B99A6B]">.</span>AI
         </Link>
-        <div className={styles.headerActions}>
-          <span className={styles.profileLink} aria-label="Style profile">SA</span>
-        </div>
+        <Link 
+          href="/dashboard" 
+          className="text-[12px] uppercase tracking-[0.16em] text-[#8B8B90] hover:text-[#E8E6E3] transition-colors"
+        >
+          Open App
+        </Link>
       </header>
 
-      <section aria-labelledby="dashboard-title">
-        <div className={styles.intro}>
-          <div>
-            <p className={styles.eyebrow}>STYLE INTELLIGENCE</p>
-            <h1 id="dashboard-title">Your style pulse</h1>
-          </div>
-          <span className={styles.dateLabel}>Personal dashboard</span>
-        </div>
-        <p className={styles.sampleNotice}>Upload a look to generate your real harmony score.</p>
+      {/* Hero Section */}
+      <section className="relative flex flex-col items-center justify-center min-h-[90vh] px-4 pt-20 text-center">
+        {/* Background Glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#B99A6B]/10 blur-[120px] rounded-full pointer-events-none" />
 
-        <section className={styles.analyticsCard} aria-label="Style analytics">
-          <div className={styles.scorePanel}>
-            <p className={styles.scoreLabel}>STYLE HARMONY SCORE</p>
-            <div
-              className={styles.scoreDial}
-              role="progressbar"
-              aria-valuenow={isRealScan ? latestScore : 0}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={isRealScan ? `Style harmony score: ${latestScore} out of 100` : "No scan yet"}
-            >
-              <div className={styles.scoreDialInner}>
-                <span className={styles.scoreValue}>{isRealScan ? latestScore : "--"}</span>
-                <span className={styles.scoreScale}>/ 100</span>
-              </div>
-            </div>
-            <p className={styles.scoreCaption}>{isRealScan ? "Your latest scan" : "Awaiting your first scan"}</p>
-          </div>
-          <div className={styles.metricGrid} aria-label="Style data layers">
-            {METRICS.map((metric) => <MetricRing key={metric.name} {...metric} />)}
-          </div>
-        </section>
-      </section>
-
-      <section aria-labelledby="history-title">
-        <div className={styles.sectionHeading}>
-          <h2 id="history-title">Recently Uploaded</h2>
-          <span className={styles.sectionMeta}>{history.length} looks · sample + this session</span>
-        </div>
-        <div className={styles.historyCard}>
-          {history.map((entry) => (
-            <article className={styles.historyRow} key={entry.id}>
-              <div className={styles.thumb}>
-                {entry.previewUrl ? (
-                  <Image
-                    className={styles.thumbImage}
-                    src={entry.previewUrl}
-                    alt={`Uploaded outfit: ${entry.title}`}
-                    width={116}
-                    height={132}
-                    unoptimized
-                  />
-                ) : (
-                  <div
-                    className={styles.sampleThumb}
-                    style={{
-                      "--thumb-a": entry.sampleColors?.[0] ?? "#414149",
-                      "--thumb-b": entry.sampleColors?.[1] ?? "#24242a",
-                    } as React.CSSProperties}
-                    role="img"
-                    aria-label="Illustrative outfit thumbnail"
-                  >
-                    <span className={styles.garmentShape} aria-hidden="true" />
-                  </div>
-                )}
-              </div>
-              <div className={styles.historyInfo}>
-                <p className={styles.historyTitle}>{entry.title}</p>
-                <p className={styles.historyCaption}>{entry.caption}</p>
-                <div className={styles.swatchRow} aria-label="Dominant colors">
-                  {entry.colors.map((color, index) => (
-                    <span
-                      className={styles.colorChip}
-                      key={`${entry.id}-${color}-${index}`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
-              </div>
-              <span className={styles.historyScore}>{entry.score}<span aria-hidden="true">/100</span></span>
-            </article>
-          ))}
-        </div>
-        {uploadMessage && (
-          <p className={`${styles.scanNotice}${uploadError ? ` ${styles.scanError}` : ""}`} role={uploadError ? "alert" : "status"}>
-            {uploadMessage}
+        <div className="relative z-10 max-w-3xl">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[#B99A6B] mb-6">
+            Style Intelligence
           </p>
-        )}
+          <h1 className="text-5xl sm:text-7xl font-medium tracking-tight mb-6 leading-[1.1]">
+            Your personal <br className="hidden sm:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E8E6E3] to-[#8B8B90]">
+              AI stylist.
+            </span>
+          </h1>
+          <p className="text-[15px] sm:text-[17px] text-[#8B8B90] mb-10 max-w-xl mx-auto leading-relaxed">
+            Elevate your everyday style. Analyze your color profile, check outfit harmony, and preview premium garments in seconds.
+          </p>
+
+          <div className="max-w-md mx-auto bg-white/[0.02] border border-white/10 rounded-2xl p-2 backdrop-blur-sm">
+            <WaitlistForm />
+          </div>
+          <p className="text-[11px] text-[#55555A] mt-4">
+            Join the private beta. No spam, ever.
+          </p>
+        </div>
       </section>
 
-      <div className={styles.lowerGrid}>
-        <nav className={styles.quickLinks} aria-label="Style tools">
-          <Link className={styles.quickLink} href="/analyze/color">
-            <span className={styles.quickIcon} aria-hidden="true">◉</span>
-            <strong>Color analysis</strong>
-            <span>Find your personal palette ↗</span>
-          </Link>
-          <Link className={styles.quickLink} href="/analyze/outfit">
-            <span className={styles.quickIcon} aria-hidden="true">✕</span>
-            <strong>Outfit check</strong>
-            <span>Get a focused second opinion ↗</span>
-          </Link>
-        </nav>
-        <section className={styles.accessCard} aria-labelledby="access-title">
-          <h2 id="access-title">Get early access</h2>
-          <p>Join the founding list for thoughtful style tools, made personal.</p>
-          <WaitlistForm />
-        </section>
-      </div>
+      {/* Features Section */}
+      <section className="px-6 py-24 border-t border-white/5 bg-[#0C0C0E]">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-16">
+            <h2 className="text-2xl sm:text-3xl font-medium tracking-tight mb-4">Three tools. One cohesive look.</h2>
+            <p className="text-[#8B8B90] text-[14px]">Everything you need to refine your personal style.</p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Card 1 */}
+            <div className="border border-white/8 bg-white/[0.015] p-8 rounded-2xl hover:bg-white/[0.03] transition-colors">
+              <div className="h-10 w-10 rounded-full border border-[#B99A6B]/30 flex items-center justify-center text-[#B99A6B] mb-6">
+                ◉
+              </div>
+              <h3 className="text-[16px] font-medium mb-2">Color Analysis</h3>
+              <p className="text-[13px] text-[#7C7C82] leading-relaxed">
+                Use your camera to instantly map your undertone and discover the palette that matches you.
+              </p>
+            </div>
 
-      <footer className={styles.footer}>
-        <span>STYLE AI · PERSONAL STYLE INTELLIGENCE</span>
-        <span>Images are kept in this tab only.</span>
+            {/* Card 2 */}
+            <div className="border border-white/8 bg-white/[0.015] p-8 rounded-2xl hover:bg-white/[0.03] transition-colors">
+              <div className="h-10 w-10 rounded-full border border-[#B99A6B]/30 flex items-center justify-center text-[#B99A6B] mb-6">
+                ✕
+              </div>
+              <h3 className="text-[16px] font-medium mb-2">Outfit Check</h3>
+              <p className="text-[13px] text-[#7C7C82] leading-relaxed">
+                Upload a photo and get instant AI feedback on harmony, occasion fit, and specific styling tweaks.
+              </p>
+            </div>
+
+            {/* Card 3 */}
+            <div className="border border-white/8 bg-white/[0.015] p-8 rounded-2xl hover:bg-white/[0.03] transition-colors">
+              <div className="h-10 w-10 rounded-full border border-[#B99A6B]/30 flex items-center justify-center text-[#B99A6B] mb-6">
+                ↗
+              </div>
+              <h3 className="text-[16px] font-medium mb-2">Virtual Studio</h3>
+              <p className="text-[13px] text-[#7C7C82] leading-relaxed">
+                Preview high-end corporate garments on your own silhouette before you buy. 
+              </p>
+              <span className="inline-block mt-4 text-[10px] uppercase tracking-[0.16em] text-[#B99A6B]">
+                Preview Mode Active
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="px-6 py-8 border-t border-white/5 text-center">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-[#55555A]">
+          Style AI · Personal style intelligence
+        </p>
       </footer>
-
-      <label className={styles.floatingUpload} aria-busy={isAnalyzing}>
-        <input
-          className={styles.floatingInput}
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleUpload}
-          aria-label="Upload an outfit image for analysis"
-          disabled={isAnalyzing}
-        />
-        <span className={styles.floatingIcon} aria-hidden="true">{isAnalyzing ? "…" : "+"}</span>
-        <span className={styles.srOnly}>{isAnalyzing ? "Analyzing outfit" : "Upload an outfit"}</span>
-      </label>
     </main>
   );
 }
