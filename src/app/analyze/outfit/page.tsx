@@ -37,8 +37,11 @@ export default function OutfitAnalysisPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [result, setResult] = useState<OutfitCheckResult | null>(null);
+  const [editedItems, setEditedItems] = useState<string[]>([]);
+  const [isEditingItems, setIsEditingItems] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -60,7 +63,7 @@ export default function OutfitAnalysisPage() {
 
   const selectFile = (selectedFile: File | undefined) => {
     if (!selectedFile) return;
-    setErrorMessage(null); setResult(null);
+    setErrorMessage(null); setResult(null); setEditedItems([]);
     if (!ACCEPTED_TYPES.includes(selectedFile.type)) { setFile(null); setErrorMessage("Choose a JPEG, PNG, or WebP image."); return; }
     if (selectedFile.size > MAX_FILE_BYTES) { setFile(null); setErrorMessage("Choose an image smaller than 4 MB."); return; }
     setFile(selectedFile);
@@ -74,14 +77,6 @@ export default function OutfitAnalysisPage() {
     if (!file || isLoading) return;
     setIsLoading(true); setErrorMessage(null); setResult(null);
     
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
     const formData = new FormData(); formData.append("image", file);
     
     try {
@@ -96,6 +91,24 @@ export default function OutfitAnalysisPage() {
       }
       if (!isOutfitCheckResult(payload)) throw new Error("The outfit analysis returned an unexpected response.");
       
+      setResult(payload);
+      setEditedItems(payload.detected_items);
+    } catch (error) {
+      const err = error as { message?: string; error_description?: string; error?: string };
+      const exactMessage = err?.message || err?.error_description || err?.error || "Something went wrong.";
+      setErrorMessage(exactMessage);
+    } finally { setIsLoading(false); }
+  };
+
+  const saveToCloset = async () => {
+    if (!file || !result || isSaving) return;
+    setIsSaving(true); setErrorMessage(null);
+    
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('outfits').upload(fileName, file);
@@ -103,24 +116,24 @@ export default function OutfitAnalysisPage() {
       
       const { data: { publicUrl } } = supabase.storage.from('outfits').getPublicUrl(fileName);
 
+      const finalItems = editedItems.filter(i => i.trim() !== "");
+
       const { error: dbError } = await supabase.from('scans').insert({
         user_id: user.id,
         image_url: publicUrl,
-        harmony_score: payload.harmony_score,
-        detected_items: payload.detected_items,
-        vibe: payload.vibe,
-        style_archetype: payload.style_archetype,
+        harmony_score: result.harmony_score,
+        detected_items: finalItems,
+        vibe: result.vibe,
+        style_archetype: result.style_archetype,
       });
       
       if (dbError) throw dbError;
 
-      setResult(payload);
+      router.push("/dashboard");
     } catch (error) {
-      console.error("Full Error Object:", error);
       const err = error as { message?: string; error_description?: string; error?: string };
-      const exactMessage = err?.message || err?.error_description || err?.error || "Something went wrong.";
-      setErrorMessage(exactMessage);
-    } finally { setIsLoading(false); }
+      setErrorMessage(err?.message || "Failed to save to cloud.");
+    } finally { setIsSaving(false); }
   };
 
   if (isLoading) {
@@ -148,7 +161,7 @@ export default function OutfitAnalysisPage() {
   }
 
   return (
-    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF]">
+    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] relative overflow-hidden">
       <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
         <Link href="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">← Back</Link>
         <span className="text-[14px] font-black uppercase tracking-tighter">Outfit Check</span>
@@ -193,6 +206,26 @@ export default function OutfitAnalysisPage() {
               </div>
             </div>
 
+            {/* Editable Detected Items Card */}
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">Detected Items</p>
+                <button onClick={() => setIsEditingItems(true)} className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] bg-[#00FF66]/10 px-3 py-1 rounded-full">Edit</button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {editedItems.length === 0 ? (
+                  <p className="text-[13px] text-[#555555] italic">No items detected.</p>
+                ) : (
+                  editedItems.map((item, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-[#00FF66] mt-1 text-[10px]">●</span>
+                      <span className="text-[14px] text-[#FFFFFF] capitalize leading-snug">{item}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-col gap-3 mt-2">
               <p className="text-[11px] font-bold uppercase tracking-widest text-[#555555] ml-2">Three Fixes</p>
               {result.three_fixes.map((fix, i) => (
@@ -210,9 +243,69 @@ export default function OutfitAnalysisPage() {
         {!result ? (
           <button onClick={analyzeOutfit} disabled={!file} className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50">Analyze Outfit</button>
         ) : (
-          <Link href="/dashboard" className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px]">Go to Dashboard</Link>
+          <button onClick={saveToCloset} disabled={isSaving} className="w-full flex items-center justify-center bg-[#00FF66] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50 shadow-[0_0_20px_rgba(0,255,102,0.2)]">
+            {isSaving ? "Saving..." : "Save to Closet"}
+          </button>
         )}
       </div>
+
+      {/* Bottom Sheet for Editing Items */}
+      {isEditingItems && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-md">
+          <div className="bg-[#111111] rounded-t-[2.5rem] p-6 border-t border-[#222222] w-full max-h-[85vh] flex flex-col animate-slide-up">
+            
+            <div className="flex justify-between items-center mb-6 shrink-0">
+              <h3 className="text-[24px] font-black tracking-tight">Adjust Items</h3>
+              <button onClick={() => setIsEditingItems(false)} className="text-[#888888] bg-[#222222] rounded-full w-10 h-10 flex items-center justify-center text-lg hover:text-[#FFFFFF] transition-colors">✕</button>
+            </div>
+
+            <p className="text-[13px] text-[#888888] mb-6 shrink-0">
+              Fix any errors made by the AI so your closet stays organized.
+            </p>
+
+            <div className="flex-1 overflow-y-auto flex flex-col gap-3 mb-6">
+              {editedItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={item}
+                    onChange={(e) => {
+                      const newItems = [...editedItems];
+                      newItems[i] = e.target.value;
+                      setEditedItems(newItems);
+                    }}
+                    className="flex-1 bg-[#000000] border border-[#333333] text-[#FFFFFF] text-[15px] px-5 py-4 rounded-xl focus:outline-none focus:border-[#FFFFFF] transition-colors"
+                  />
+                  <button 
+                    onClick={() => setEditedItems(editedItems.filter((_, idx) => idx !== i))} 
+                    className="h-[54px] w-[54px] shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500/20 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              
+              {editedItems.length === 0 && (
+                <p className="text-[13px] text-[#555555] text-center py-4">All items removed.</p>
+              )}
+
+              <button 
+                onClick={() => setEditedItems([...editedItems, ""])} 
+                className="flex items-center justify-center gap-2 w-full border border-dashed border-[#333333] text-[#888888] py-4 rounded-xl font-bold uppercase tracking-widest text-[12px] hover:border-[#FFFFFF] hover:text-[#FFFFFF] transition-colors mt-2"
+              >
+                <span>+</span> Add Item
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setIsEditingItems(false)} 
+              className="w-full shrink-0 bg-[#FFFFFF] text-[#000000] h-[64px] rounded-full font-black uppercase tracking-widest text-[15px] active:scale-[0.98] transition-transform"
+            >
+              Save Changes
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
