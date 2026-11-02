@@ -10,6 +10,8 @@ type OutfitCheckResult = {
   harmony_score: number;
   occasion_fit: string;
   three_fixes: [string, string, string];
+  vibe: string;
+  style_archetype: string;
 };
 
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
@@ -30,7 +32,9 @@ function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
     Array.isArray(result.dominant_colors) && result.dominant_colors.every((color) => typeof color === "string") &&
     typeof result.harmony_score === "number" && Number.isFinite(result.harmony_score) && result.harmony_score >= 0 && result.harmony_score <= 100 &&
     typeof result.occasion_fit === "string" &&
-    Array.isArray(result.three_fixes) && result.three_fixes.length === 3 && result.three_fixes.every((fix) => typeof fix === "string")
+    Array.isArray(result.three_fixes) && result.three_fixes.length === 3 && result.three_fixes.every((fix) => typeof fix === "string") &&
+    typeof result.vibe === "string" &&
+    typeof result.style_archetype === "string"
   );
 }
 
@@ -106,17 +110,10 @@ export default function OutfitAnalysisPage() {
     } finally { setIsLoading(false); }
   };
 
-  // =========================================================================
-  // EARLY RETURN: FULL SCREEN LOADING STATE (No Overlays, No Blur Bugs)
-  // =========================================================================
   if (isLoading) {
     return (
       <main className="relative flex flex-col h-screen bg-[#000000] text-[#FFFFFF] items-center justify-center p-6">
-        {/* Optional: Add a blurred background of the user's photo */}
-        {previewUrl && (
-          <Image src={previewUrl} alt="Blur" fill className="object-cover opacity-20 blur-xl" unoptimized />
-        )}
-        
+        {previewUrl && <Image src={previewUrl} alt="Blur" fill className="object-cover opacity-20 blur-xl" unoptimized />}
         <div className="relative z-10 flex flex-col gap-6 w-full max-w-[280px]">
           <h2 className="text-[24px] font-black tracking-tighter text-center mb-4 text-[#FFFFFF]">Analyzing...</h2>
           {LOADING_STEPS.map((step, index) => {
@@ -128,9 +125,7 @@ export default function OutfitAnalysisPage() {
                   {isCompleted && <span className="text-[#000000] text-[16px] font-black">✓</span>}
                   {isActive && <span className="h-3 w-3 bg-[#FFFFFF] rounded-full animate-pulse" />}
                 </div>
-                <span className={`text-[14px] font-bold uppercase tracking-widest ${isCompleted ? "text-[#888888] line-through" : "text-[#FFFFFF]"}`}>
-                  {step}
-                </span>
+                <span className={`text-[14px] font-bold uppercase tracking-widest ${isCompleted ? "text-[#888888] line-through" : "text-[#FFFFFF]"}`}>{step}</span>
               </div>
             );
           })}
@@ -139,30 +134,19 @@ export default function OutfitAnalysisPage() {
     );
   }
 
-  // =========================================================================
-  // NORMAL PAGE RENDER
-  // =========================================================================
   return (
     <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF]">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
-        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">
-          ← Back
-        </Link>
+        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">← Back</Link>
         <span className="text-[14px] font-black uppercase tracking-tighter">Outfit Check</span>
         <div className="w-10"></div>
       </header>
 
-      {/* Main Scrollable Content */}
       <div className="flex-1 flex flex-col px-6 py-8 overflow-y-auto">
         {!result ? (
           <div className="flex flex-col h-full">
-            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-3">
-              Scan your <br />fit.
-            </h1>
-            <p className="text-[14px] text-[#888888] mb-8 leading-relaxed">
-              Drop a photo of your outfit below. Our AI will analyze the silhouette, harmony, and occasion fit.
-            </p>
+            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-3">Scan your <br />fit.</h1>
+            <p className="text-[14px] text-[#888888] mb-8 leading-relaxed">Drop a photo of your outfit below. Our AI will analyze the silhouette, harmony, and occasion fit.</p>
 
             <div
               className={`relative flex-1 w-full overflow-hidden rounded-[2rem] bg-[#111111] border-2 transition-all ${isDragging ? "border-[#FFFFFF]" : "border-[#222222] border-dashed"} flex flex-col items-center justify-center`}
@@ -181,15 +165,19 @@ export default function OutfitAnalysisPage() {
               )}
               <input className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" type="file" accept="image/*" onChange={handleFileInput} />
             </div>
-
             {errorMessage && <p className="mt-4 text-[12px] text-red-500 font-medium text-center" role="alert">{errorMessage}</p>}
           </div>
         ) : (
           <div className="flex flex-col h-full animate-slide-up">
-            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-6">
-              Analysis <br />complete.
-            </h1>
+            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-6">Analysis <br />complete.</h1>
             
+            {/* NEW: Vibe & Archetype Card */}
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6 mb-4 flex flex-col items-center text-center">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66] mb-2">{result.vibe}</p>
+              <h2 className="text-[24px] font-black tracking-tighter mb-1">{result.style_archetype}</h2>
+              <p className="text-[13px] text-[#888888] leading-relaxed">{result.occasion_fit}</p>
+            </div>
+
             <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center mb-4">
               <div className="relative h-40 w-40 rounded-full flex items-center justify-center mb-4"
                    style={{ background: `conic-gradient(#FFFFFF ${result.harmony_score}%, #222222 0)` }}>
@@ -198,7 +186,6 @@ export default function OutfitAnalysisPage() {
                   <span className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mt-1">Harmony</span>
                 </div>
               </div>
-              <p className="text-[13px] text-[#888888] text-center max-w-[200px]">{result.occasion_fit}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -231,23 +218,11 @@ export default function OutfitAnalysisPage() {
         )}
       </div>
 
-      {/* Bottom Action Button */}
       <div className="px-6 pb-8 pt-4 shrink-0 bg-gradient-to-t from-black via-black to-transparent z-10 relative">
         {!result ? (
-          <button
-            onClick={analyzeOutfit}
-            disabled={!file}
-            className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50"
-          >
-            Analyze Outfit
-          </button>
+          <button onClick={analyzeOutfit} disabled={!file} className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50">Analyze Outfit</button>
         ) : (
-          <Link
-            href="/dashboard"
-            className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px]"
-          >
-            Go to Dashboard
-          </Link>
+          <Link href="/dashboard" className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px]">Go to Dashboard</Link>
         )}
       </div>
     </main>
