@@ -14,9 +14,17 @@ type ScanRecord = {
   created_at: string;
 };
 
+type ArbitrageResult = {
+  missing_item: string;
+  unlocks_count: number;
+  reason: string;
+  search_query: string;
+};
+
 export default function MobileDashboardPage() {
   const router = useRouter();
   const [history, setHistory] = useState<ScanRecord[]>([]);
+  const [arbitrage, setArbitrage] = useState<ArbitrageResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -37,6 +45,14 @@ export default function MobileDashboardPage() {
 
       if (data) setHistory(data);
       setIsLoading(false);
+
+      if (data && data.length > 0) {
+        try {
+          const res = await fetch("/api/arbitrage");
+          const resData = await res.json();
+          if (res.ok && resData.missing_item) setArbitrage(resData);
+        } catch (e) { console.error(e); }
+      }
     };
     fetchData();
   }, [router]);
@@ -48,7 +64,6 @@ export default function MobileDashboardPage() {
   };
 
   const latestScore = history.length > 0 ? history[0].harmony_score : 0;
-  
   const radius = 45;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = history.length > 0 ? circumference - (latestScore / 100) * circumference : circumference;
@@ -68,7 +83,7 @@ export default function MobileDashboardPage() {
         <button onClick={handleLogout} className="text-[11px] font-bold uppercase tracking-widest text-[#888888] hover:text-[#FFFFFF]">Log Out</button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6">
         
         <div className="flex flex-col items-center justify-center mt-4 mb-10 shrink-0">
           <div className="relative w-64 h-64 flex items-center justify-center mb-6">
@@ -84,6 +99,31 @@ export default function MobileDashboardPage() {
           </div>
           <p className="text-[13px] font-bold text-[#888888] uppercase tracking-widest">Today&apos;s Style Pulse</p>
         </div>
+
+        {/* Redesigned Arbitrage Card */}
+        {arbitrage && (
+          <div className="mb-10 bg-[#111111] border border-[#222222] rounded-[2rem] p-8 relative overflow-hidden shadow-[0_0_30px_rgba(0,255,102,0.05)]">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#00FF66] via-[#00FF66]/50 to-transparent"></div>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <span className="h-2 w-2 rounded-full bg-[#00FF66] animate-pulse" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66]">Missing Link Detected</p>
+            </div>
+
+            <h3 className="text-[26px] font-black tracking-tighter leading-none mb-3 capitalize">Buy {arbitrage.missing_item}</h3>
+            <p className="text-[14px] text-[#888888] leading-relaxed mb-6">{arbitrage.reason}</p>
+            
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between bg-[#000000] border border-[#222222] rounded-xl p-3">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">Combinations Unlocked</span>
+                <span className="text-[18px] font-black text-[#FFFFFF]">{arbitrage.unlocks_count}</span>
+              </div>
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(arbitrage.search_query)}`} target="_blank" rel="noreferrer" className="w-full flex items-center justify-center text-[12px] font-black uppercase tracking-widest text-[#000000] bg-[#FFFFFF] h-[56px] rounded-full hover:bg-[#E0E0E0] active:scale-[0.98] transition-all">
+                Shop This Item ↗
+              </a>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-end mb-2">
@@ -114,7 +154,8 @@ export default function MobileDashboardPage() {
         </div>
       </div>
 
-      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] grid grid-cols-4 items-center relative">
+      {/* 5-Column Grid for Perfect Spacing */}
+      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] grid grid-cols-5 items-center relative">
         <Link href="/dashboard" className="flex flex-col items-center gap-1">
           <span className="text-[20px] text-[#FFFFFF]">◉</span>
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#FFFFFF]">Home</span>
@@ -125,11 +166,17 @@ export default function MobileDashboardPage() {
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Closet</span>
         </Link>
 
+        {/* Empty column for the floating + button */}
         <div className="w-full h-full"></div>
 
         <Link href="/dashboard/try-on" className="flex flex-col items-center gap-1">
           <span className="text-[20px] text-[#888888]">✦</span>
           <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Studio</span>
+        </Link>
+
+        <Link href="/admin" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">⚙</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Admin</span>
         </Link>
 
         <Link href="/analyze/outfit" className="absolute -top-5 left-1/2 -translate-x-1/2 h-[54px] w-[54px] bg-[#FFFFFF] rounded-[1.2rem] flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform">
