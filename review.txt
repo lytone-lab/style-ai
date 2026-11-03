@@ -1,0 +1,3577 @@
+﻿
+===== .github/workflows/ci.yml =====
+name: Next.js CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run ESLint
+      run: npm run lint
+
+    - name: Build project
+      run: npm run build
+      env:
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+===== .kilo/plans/1793540290180-style-ai-assessment.md =====
+# STYLE.AI â€” UI/UX Modernization Plan (Cal AI style)
+
+## Goal
+Modernize the dashboard UI to match Cal AI's premium, clean aesthetic: dark theme, generous spacing, large bold type, subtle glass cards, single accent color, flat/no 3D transforms, strong hierarchy, mobile-first.
+
+## Scope
+- `src/app/dashboard.module.css` (primary)
+- `src/app/page.tsx` (layout/structure tweaks only, no logic changes)
+- Optional: `globals.css` for base tokens/fonts
+
+Out of scope: backend, try-on implementation (handled by Copilot), business logic.
+
+## Design Direction (Cal AI-inspired)
+- Background: near-black `#0a0a0b` with soft radial glow at top.
+- Surfaces: `#141416` cards with 1px subtle border `#23232a`, no 3D perspective transforms.
+- Accent: single warm accent (e.g. `#f5a623` amber or `#7c5cff` violet) used sparingly for CTAs/active states.
+- Typography: larger scale â€” h1 36-48px, section 20px, body 14-16px; tight letter-spacing -0.02em; use system/Inter.
+- Cards: 20-24px radius, 20-28px padding, soft shadow only, no perspective.
+- Score dial: bigger (200px), cleaner, remove -45deg rotation hack; center value 56px.
+- History rows: larger thumbnails (72px), more breathing room, no 3D.
+- Floating upload FAB: larger (64px), accent fill, drop shadow.
+- Remove "DEMO" streak chip noise; simplify header to brand + avatar.
+- Sample notice: subtle pill, not dot.
+- Responsive: single column under 768px, comfortable tap targets (44px min).
+
+## Concrete Improvements
+1. Replace tiny 8-11px font sizes with 12-16px baseline; scale headings up.
+2. Remove all `perspective()` / `rotateX()` transforms.
+3. Flatten card gradients to solid surface + subtle border; reduce shadow intensity.
+4. Increase radius from 15-16px to 20-24px.
+5. Add top radial glow background.
+6. Unify spacing scale (8/12/16/24/32/48).
+7. Make score dial the hero; metrics as 3 compact tiles with progress rings.
+8. Simplify header: brand left, profile right, remove streak.
+9. History: bigger thumbs, score as colored badge, color swatches larger.
+10. Empty/loading states: skeleton shimmer while analyzing.
+11. Accessibility: focus rings, aria labels (already decent), contrast check (muted text â‰¥ 4.5:1).
+12. Motion: 200ms ease-out, respect prefers-reduced-motion.
+
+## Validation
+- `npm run typecheck` && `npm run lint`
+- Visual check at 375/768/1280 widths
+- Lighthouse accessibility â‰¥ 90
+
+## Open Questions
+- Accent color preference (amber vs violet vs white-only)?
+- Light mode needed or dark-only?
+
+===== docs/AI_CONTEXT.md =====
+# STYLE AI - PROJECT CONTEXT & AI ONBOARDING
+
+## Vision
+Build a billion-dollar, Cal AI-inspired mobile-first PWA for fashion. It transitions from a simple outfit analyzer into a daily habit loop tracking Wardrobe Economy, Cost-Per-Wear, and Predictive Contextual Styling.
+
+## Tech Stack
+- **Framework:** Next.js 15.5 (App Router, Webpack, `next.config.ts` configured for Windows SWC).
+- **Styling:** Tailwind CSS (Mobile-first strict container: `max-w-md mx-auto`, dark mode `#000000` base, `#111111` cards, `#FFFFFF` text, massive font-black typography).
+- **Database:** Supabase Cloud (Currently only Waitlist is wired. Auth and Cloud Sync are the next priority).
+- **AI:** Groq Cloud (`qwen/qwen3.8-27b` for Vision), MediaPipe (`@mediapipe/tasks-vision` for local face mesh/undertone analysis).
+- **Deployments:** GitHub Actions CI, pushing to `https://github.com/lytone-lab/style-ai`.
+
+## Current State (What is built)
+1. **Landing Page (`/`)**: Mobile-locked Cal AI UI with massive buttons.
+2. **Dashboard (`/dashboard`)**: SVG Harmony Ring, localStorage history, bottom navigation.
+3. **Outfit Analyzer (`/analyze/outfit`)**: Uploads to Groq, gets Vibe, Archetype, Score, and 3 Fixes. Uses a full-screen sequential loading state.
+4. **Color Analyzer (`/analyze/color`)**: MediaPipe face tracking with a dense cinematic white mesh. Calculates undertone via CIELAB math.
+5. **Virtual Studio (`/dashboard/try-on`)**: Preview mode for virtual try-on (Canvas pan/zoom, garment carousel). No Fal.ai integration yet.
+
+## Immediate Next Steps (The Roadmap)
+- **Phase 1:** Setup Supabase Authentication (Email/Password & OAuth) and replace `localStorage` with Cloud Database.
+- **Phase 2:** Digital Closet & Cost-Per-Wear.
+- **Phase 3:** Coarse-to-Fine Adjuster & Arbitrage Engine.
+- **Phase 4:** True AI Try-on (Fal.ai) and AI Chat Stylist.
+
+## AI Instructions
+- **Commands:** Always provide PowerShell commands to write files using here-strings (`@' ... '@ | Set-Content -Path "..." -Encoding utf8`).
+- **System Constraints:** Execution policies might block npm. Remind the user to run `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force` if needed.
+- **UI Rules:** NEVER use glassmorphism or soft clay shadows. Strict Cal AI / Neo-Brutalist aesthetic. 1px borders (`border-[#222222]`), stark white buttons.
+- **Errors:** If Next.js throws a TensorFlow console error, override `console.log`, `console.info`, and `console.warn` in the `detectForVideo` loop.
+
+## UI/UX Laws & Behavioral Design (STRICT RULES)
+The app must weaponize these cognitive principles to maximize conversion and retention:
+- **Hick's Law:** Minimize decisions. (e.g., Replace complex text-editing grids with a single, intuitive visual slider for cropping).
+- **Fitts's Law:** Make primary actions massive and reachable. (e.g., h-[72px] sticky bottom buttons, large touch targets).
+- **Jakob's Law:** Use familiar patterns. (e.g., Standard bottom sheets, native range sliders).
+- **Law of Proximity:** Group related elements visually. (e.g., Image, title, and CPW inside a single bordered card).
+- **Miller's Law (7±2):** Reduce cognitive load. Show max 3 items per card or use visual badges (+3 items) instead of long text lists.
+- **The IKEA Effect:** Users value what they help create. Forcing a quick manual crop makes them invest in their digital closet.
+
+===== docs/ROADMAP.md =====
+# STYLE AI - THE ROADMAP TO A BILLION DOLLARS
+
+This document outlines all remaining features required to transition from the MVP to a sticky, monetizable, daily-habit app.
+
+## 1. The Wardrobe Value & Velocity Loop (Cost-Per-Wear)
+- **What it is:** Tracking how much value a user gets out of their clothes. Every time a user logs an outfit, the `wear_count` increments for those specific items.
+- **The Utility:** The dashboard displays a "Closet Depreciation Meter." A $200 jacket worn 10 times is $20/wear. A $80 shirt worn 0 times is $80/wear.
+- **Behavioral Hook:** Triggers data investment. Users won't delete the app because their financial wardrobe history lives there.
+
+## 2. Predictive Context Engine (Pre-emptive Styling)
+- **What it is:** A background function that runs at 7:00 AM. It pings a Weather API and the user's Calendar.
+- **The Utility:** Instead of waiting for a scan, it sends a push notification: "It's 11°C and raining, but you have a formal meeting at 2:00 PM. Tap to see 3 optimal combinations from your saved wardrobe."
+- **Behavioral Hook:** Shifts the app from reactive (rating outfits) to proactive (telling you what to wear).
+
+## 3. The Interactive Coarse-to-Fine Adjuster
+- **What it is:** An editable slide-up sheet displaying the AI's parsed JSON after a scan. Every item is an editable tag. Tapping "Charcoal Hoodie" opens a menu: [Edit Color | Change Material | Swap Layer].
+- **The Utility:** Removes frustration when the AI guesses wrong. Ensures data written to Supabase is pristine.
+- **Behavioral Hook:** Gives the user total control over their digital closet.
+
+## 4. Single-Item Gap Arbitrage (The Core Monetization)
+- **What it is:** An algorithm that scans the user's database. It identifies structural limitations (e.g., user has 5 dark trousers and 4 blazers, but 0 light base layers).
+- **The Utility:** The dashboard generates a micro-card: "You are missing a Cream Micro-Rib Tee. Adding this unlocks 9 new outfit configurations with items you already own."
+- **Behavioral Hook:** Clicking the card opens a native checkout (affiliate link). You monetize the missing link.
+
+## 5. Supabase Authentication & Cloud Storage
+- **What it is:** Full auth (Email/OAuth). Uploading scanned images to Supabase Storage buckets. Syncing the dashboard history.
+- **The Utility:** Users can log in on a new phone and their entire wardrobe is there. No more `localStorage` amnesia.
+
+## 6. True AI Try-On (Premium Tier)
+- **What it is:** Replacing the "Preview Mode" with Fal.ai/Replicate InstantID integration.
+- **The Utility:** The AI literally puts the shirt on the user's body.
+- **Monetization:** Lock this behind a $5/mo paywall to cover API costs.
+
+## 7. The AI Chat Stylist
+- **What it is:** A text interface where a user can say: "I have a dinner date at a rooftop bar tonight. Pick an outfit from my closet."
+- **The Utility:** The AI parses their Supabase database and outputs a specific outfit combo.
+
+## 8. Viral Onboarding & Paywall
+- **What it is:** A 5-question quiz before the dashboard (Vibe, Budget, Body Type).
+- **The Utility:** Cognitive dissonance. After investing 2 minutes answering questions, users convert to the $4.99/mo subscription at a much higher rate.
+
+===== src/app/admin/page.tsx =====
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+
+type Profile = { id: string; email: string; created_at: string };
+type Scan = { id: string; harmony_score: number; vibe: string; image_url: string; created_at: string };
+type Waitlist = { id: string; email: string; created_at: string };
+
+export default function AdminDashboardPage() {
+  const [data, setData] = useState<{ profiles: Profile[], scans: Scan[], waitlist: Waitlist[] } | null>(null);
+  const [error, setError] = useState<{ message: string, userEmail: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/admin/data")
+      .then(async (res) => {
+        const json = await res.json();
+        if (!res.ok) throw json;
+        return json;
+      })
+      .then((d) => { setData(d); setLoading(false); })
+      .catch((err) => { setError({ message: err.error, userEmail: err.userEmail }); setLoading(false); });
+  }, []);
+
+  if (loading) return <main className="min-h-screen bg-[#000000] text-[#FFFFFF] flex items-center justify-center font-black uppercase tracking-widest">Authenticating...</main>;
+  
+  if (error) return (
+    <main className="min-h-screen bg-[#000000] text-[#FFFFFF] flex flex-col items-center justify-center font-sans">
+      <h1 className="text-3xl font-black text-red-500 mb-2">Access Denied.</h1>
+      <p className="text-[#888888] mb-6">You are currently logged in as: <strong className="text-[#FFFFFF]">{error.userEmail}</strong></p>
+      <div className="flex gap-4">
+        <Link href="/login" className="text-[12px] font-bold uppercase tracking-widest text-[#000000] bg-[#FFFFFF] px-6 py-3 rounded-xl hover:bg-[#E0E0E0]">Go to Login</Link>
+        <Link href="/dashboard" className="text-[12px] font-bold uppercase tracking-widest text-[#FFFFFF] border border-[#222222] px-6 py-3 rounded-xl hover:bg-[#111111]">Go to App</Link>
+      </div>
+    </main>
+  );
+
+  return (
+    <main className="min-h-screen bg-[#000000] text-[#FFFFFF] px-6 py-8 font-sans">
+      <header className="flex justify-between items-center mb-8 border-b border-[#222222] pb-6">
+        <div>
+          <h1 className="text-[28px] font-black tracking-tighter leading-tight">Admin Center</h1>
+          <p className="text-[#888888] text-[12px] mt-1">Full ecosystem visibility.</p>
+        </div>
+        <Link href="/dashboard" className="text-[10px] font-bold uppercase tracking-widest text-[#000000] bg-[#FFFFFF] px-4 py-2.5 rounded-xl hover:bg-[#E0E0E0] transition-colors">
+          Exit
+        </Link>
+      </header>
+
+      {/* Grid Stats */}
+      <div className="grid grid-cols-2 gap-3 mb-10">
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Users</p>
+          <p className="text-[32px] font-black text-[#00FF66] leading-none">{data?.profiles.length || 0}</p>
+        </div>
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Total Scans</p>
+          <p className="text-[32px] font-black text-[#FFFFFF] leading-none">{data?.scans.length || 0}</p>
+        </div>
+        <div className="bg-[#111111] border border-[#222222] rounded-2xl p-5 flex flex-col justify-between col-span-2">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-[#888888] mb-2">Waitlist Signups</p>
+          <p className="text-[32px] font-black text-[#FFFFFF] leading-none">{data?.waitlist.length || 0}</p>
+        </div>
+      </div>
+
+      {/* Global Feed */}
+      <div className="flex justify-between items-end mb-4">
+        <h2 className="text-[18px] font-bold tracking-tight">Global Outfit Feed</h2>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4 pb-10">
+        {data?.scans.map((scan) => (
+          <div key={scan.id} className="bg-[#111111] border border-[#222222] rounded-2xl overflow-hidden flex flex-col">
+            <div className="relative aspect-[3/4] w-full bg-[#222222]">
+              {scan.image_url && <Image src={scan.image_url} alt="Scan" fill className="object-cover" unoptimized />}
+              <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded-md border border-white/10">
+                <span className="text-[12px] font-black text-[#FFFFFF]">{scan.harmony_score}</span>
+              </div>
+            </div>
+            <div className="p-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-[#00FF66] truncate">{scan.vibe}</p>
+              <p className="text-[10px] text-[#888888] mt-1">{new Date(scan.created_at).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+===== src/app/analyze/color/page.tsx =====
+"use client";
+
+import Link from "next/link";
+import Script from "next/script";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { analyzeUndertone, type RGB, type Undertone } from "@/lib/colorMath";
+
+type FaceLandmark = { x: number; y: number };
+type FaceLandmarkerInstance = {
+  detectForVideo(video: HTMLVideoElement, timestamp: number): { faceLandmarks: FaceLandmark[][] };
+  close(): void;
+};
+type MediaPipeVision = {
+  FaceLandmarker: {
+    createFromOptions(fileset: unknown, options: { baseOptions: { modelAssetPath: string; delegate: "GPU" | "CPU" }; runningMode: "VIDEO"; numFaces: number; }): Promise<FaceLandmarkerInstance>;
+    FACE_LANDMARKS_TESSELATION?: number[] | Uint32Array;
+  };
+  FilesetResolver: { forVisionTasks(wasmPath: string): Promise<unknown>; };
+};
+
+declare global { interface Window { tasksVision?: MediaPipeVision; Vision?: MediaPipeVision; } }
+
+const SCRIPT_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js";
+const WASM_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm";
+const MODEL_URL = "/face_landmarker.task";
+const LIGHTING_WARNING = "Please stand in front of a window or bright, natural light.";
+const SAMPLE_CHEEK_LEFT = 117; const SAMPLE_CHEEK_RIGHT = 346; const SAMPLE_FOREHEAD = 10;
+
+function samplePatch(context: CanvasRenderingContext2D, width: number, height: number, landmark: FaceLandmark, offsetY = 0): RGB[] {
+  const centerX = Math.round(landmark.x * width); const centerY = Math.round((landmark.y + offsetY) * height);
+  const radius = 4; const left = Math.max(0, Math.min(width - 1, centerX - radius)); const top = Math.max(0, Math.min(height - 1, centerY - radius));
+  const patchWidth = Math.min(radius * 2 + 1, width - left); const patchHeight = Math.min(radius * 2 + 1, height - top);
+  const pixels = context.getImageData(left, top, patchWidth, patchHeight).data; const samples: RGB[] = [];
+  for (let index = 0; index < pixels.length; index += 4) { samples.push([pixels[index], pixels[index + 1], pixels[index + 2]]); }
+  return samples;
+}
+
+function getLightingWarning(context: CanvasRenderingContext2D, width: number, height: number): string | null {
+  const pixels = context.getImageData(0, 0, width, height).data; let luminanceTotal = 0; let clippedPixels = 0; const pixelCount = pixels.length / 4;
+  for (let index = 0; index < pixels.length; index += 4) {
+    const red = pixels[index]; const green = pixels[index + 1]; const blue = pixels[index + 2];
+    luminanceTotal += 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+    if (red > 248 && green > 248 && blue > 248) clippedPixels += 1;
+  }
+  const averageLuminance = luminanceTotal / pixelCount;
+  return averageLuminance < 70 || averageLuminance > 225 || clippedPixels / pixelCount > 0.35 ? LIGHTING_WARNING : null;
+}
+
+// ===== THE CORRECT CINEMATIC FULL FACE DENSE MESH =====
+function drawMesh(context: CanvasRenderingContext2D, landmarks: FaceLandmark[], width: number, height: number) {
+  context.clearRect(0, 0, width, height);
+
+  const visionLib = window.tasksVision ?? window.Vision;
+  // Retrieve the official tesselation array from the loaded MediaPipe bundle
+  const tesselationPairs = visionLib?.FaceLandmarker?.FACE_LANDMARKS_TESSELATION;
+
+  context.strokeStyle = "rgba(255, 255, 255, 0.15)"; // Thin, futuristic wireframe lines
+  context.lineWidth = 0.5;
+  context.beginPath();
+
+  if (tesselationPairs && tesselationPairs.length > 0) {
+    // The tesselation array is a flat list of index pairs: [start1, end1, start2, end2...]
+    for (let i = 0; i < tesselationPairs.length; i += 2) {
+      const startIdx = tesselationPairs[i];
+      const endIdx = tesselationPairs[i + 1];
+      
+      const startPt = landmarks[startIdx];
+      const endPt = landmarks[endIdx];
+
+      if (startPt && endPt) {
+        context.moveTo(startPt.x * width, startPt.y * height);
+        context.lineTo(endPt.x * width, endPt.y * height);
+      }
+    }
+  } else {
+    // Fallback mapping that forces lateral connections across the face (preventing the nose cluster)
+    for (let i = 0; i < landmarks.length; i++) {
+      const pt = landmarks[i];
+      const offsets = [15, 30, 45]; // Skip across index space to connect wider facial regions
+      for (const offset of offsets) {
+        const nextIdx = (i + offset) % landmarks.length;
+        const nextPt = landmarks[nextIdx];
+        if (pt && nextPt) {
+          context.moveTo(pt.x * width, pt.y * height);
+          context.lineTo(nextPt.x * width, nextPt.y * height);
+        }
+      }
+    }
+  }
+  context.stroke();
+
+  // Draw the bright micro tracking nodes
+  context.fillStyle = "rgba(255, 255, 255, 0.6)";
+  for (let i = 0; i < landmarks.length; i += 2) { // Step by 2 to save performance
+    const pt = landmarks[i];
+    if (pt) {
+      context.beginPath();
+      context.arc(pt.x * width, pt.y * height, 0.8, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+}
+
+export default function ColorAnalysisPage() {
+  const videoRef = useRef<HTMLVideoElement>(null); const overlayRef = useRef<HTMLCanvasElement>(null); const processingCanvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null); const landmarkerRef = useRef<FaceLandmarkerInstance | null>(null); const landmarkerInitializationRef = useRef<Promise<FaceLandmarkerInstance> | null>(null);
+  const animationFrameRef = useRef<number | null>(null); const qualityOkayRef = useRef(false); const lastDetectionRef = useRef(0); const lastLightingCheckRef = useRef(0); const lastAnalysisRef = useRef(0);
+  
+  const [cameraActive, setCameraActive] = useState(false); const [isStarting, setIsStarting] = useState(false); const [isLibraryReady, setIsLibraryReady] = useState(false);
+  const [faceLandmarker, setFaceLandmarker] = useState<FaceLandmarkerInstance | null>(null); const [statusMessage, setStatusMessage] = useState("Your camera stays on this device.");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); const [lightingWarning, setLightingWarning] = useState<string | null>(null);
+  const [undertone, setUndertone] = useState<Undertone | null>(null); const [faceDetected, setFaceDetected] = useState(false);
+
+  useEffect(() => {
+    if (!isLibraryReady) return;
+    const vision = window.tasksVision ?? window.Vision;
+    if (!vision?.FilesetResolver || !vision.FaceLandmarker) { setErrorMessage("Face analysis could not initialize. Please refresh and try again."); return; }
+    window.tasksVision = vision;
+    let cancelled = false;
+    
+    const initializeLandmarker = async () => {
+      try {
+        if (!landmarkerInitializationRef.current) {
+          landmarkerInitializationRef.current = (async () => {
+            const fileset = await vision.FilesetResolver.forVisionTasks(WASM_URL);
+            try { return await vision.FaceLandmarker.createFromOptions(fileset, { baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" }, runningMode: "VIDEO", numFaces: 1 }); }
+            catch { return vision.FaceLandmarker.createFromOptions(fileset, { baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" }, runningMode: "VIDEO", numFaces: 1 }); }
+          })();
+        }
+        const landmarker = await landmarkerInitializationRef.current;
+        if (cancelled) return; landmarkerRef.current = landmarker; setFaceLandmarker(landmarker);
+      } catch (error) {
+        landmarkerInitializationRef.current = null;
+        if (cancelled) return;
+        setErrorMessage(error instanceof Error ? `Face analysis could not initialize: ${error.message}` : "Face analysis could not initialize. Please refresh and try again.");
+      }
+    };
+    void initializeLandmarker(); return () => { cancelled = true; };
+  }, [isLibraryReady]);
+
+  useEffect(() => () => { landmarkerRef.current?.close(); landmarkerRef.current = null; }, []);
+
+  useEffect(() => {
+    if (!cameraActive || !isLibraryReady || !faceLandmarker) return;
+    const video = videoRef.current; if (!video) return;
+    
+    const renderFrame = () => {
+      if (!video.videoWidth || !video.videoHeight) { animationFrameRef.current = requestAnimationFrame(renderFrame); return; }
+      
+      const overlay = overlayRef.current; const overlayContext = overlay?.getContext("2d");
+      const processingCanvas = processingCanvasRef.current; const processingContext = processingCanvas?.getContext("2d", { willReadFrequently: true });
+      
+      if (overlay && overlayContext && processingCanvas && processingContext) {
+        if (overlay.width !== video.videoWidth || overlay.height !== video.videoHeight) { overlay.width = video.videoWidth; overlay.height = video.videoHeight; }
+        if (processingCanvas.width !== 320 || processingCanvas.height !== 240) { processingCanvas.width = 320; processingCanvas.height = 240; }
+        
+        const now = performance.now();
+        
+        if (now - lastDetectionRef.current > 100) {
+          processingContext.drawImage(video, 0, 0, processingCanvas.width, processingCanvas.height);
+          
+          if (now - lastLightingCheckRef.current > 900) {
+            const warning = getLightingWarning(processingContext, processingCanvas.width, processingCanvas.height);
+            qualityOkayRef.current = warning === null; setLightingWarning(warning); lastLightingCheckRef.current = now;
+          }
+          
+          // Suppress TensorFlow log inside detectForVideo
+          const origLog = console.log;
+          console.log = (...args) => { if (typeof args[0] === 'string' && args[0].includes('TensorFlow')) return; origLog(...args); };
+          
+          const result = faceLandmarker.detectForVideo(video, now); 
+          
+          console.log = origLog; // restore
+          
+          const landmarks = result.faceLandmarks[0];
+          setFaceDetected(Boolean(landmarks));
+          
+          if (landmarks) {
+            drawMesh(overlayContext, landmarks, overlay.width, overlay.height);
+            
+            if (qualityOkayRef.current && now - lastAnalysisRef.current > 2500) {
+              const leftCheek = landmarks[SAMPLE_CHEEK_LEFT]; const rightCheek = landmarks[SAMPLE_CHEEK_RIGHT]; const forehead = landmarks[SAMPLE_FOREHEAD];
+              const analysis = analyzeUndertone({
+                cheeks: [...samplePatch(processingContext, processingCanvas.width, processingCanvas.height, leftCheek), ...samplePatch(processingContext, processingCanvas.width, processingCanvas.height, rightCheek)],
+                forehead: samplePatch(processingContext, processingCanvas.width, processingCanvas.height, forehead, 0.035),
+              });
+              setUndertone(analysis.undertone); lastAnalysisRef.current = now;
+            }
+          } else {
+             overlayContext.clearRect(0, 0, overlay.width, overlay.height);
+          }
+          
+          lastDetectionRef.current = now;
+        }
+      }
+      animationFrameRef.current = requestAnimationFrame(renderFrame);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(renderFrame);
+    return () => { if (animationFrameRef.current !== null) { cancelAnimationFrame(animationFrameRef.current); animationFrameRef.current = null; } };
+  }, [cameraActive, faceLandmarker, isLibraryReady]);
+
+  const stopCamera = useCallback(() => {
+    if (animationFrameRef.current !== null) { cancelAnimationFrame(animationFrameRef.current); animationFrameRef.current = null; }
+    streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    const canvas = overlayRef.current; const context = canvas?.getContext("2d");
+    if (canvas && context) context.clearRect(0, 0, canvas.width, canvas.height);
+    qualityOkayRef.current = false; setCameraActive(false); setFaceDetected(false); setLightingWarning(null); setUndertone(null); setStatusMessage("Your camera stays on this device.");
+  }, []);
+
+  useEffect(() => stopCamera, [stopCamera]);
+
+  const startCamera = async () => {
+    if (!isLibraryReady || !faceLandmarker) { setErrorMessage("Face analysis is still initializing. Please try again in a moment."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { setErrorMessage("Camera access is not available in this browser."); return; }
+    setIsStarting(true); setErrorMessage(null); setStatusMessage("Preparing your camera...");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } } });
+      streamRef.current = stream;
+      const video = videoRef.current; if (!video) throw new Error("The camera preview could not be initialized.");
+      video.srcObject = stream; await video.play();
+      setCameraActive(true); setStatusMessage("Center your face in the frame.");
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop()); streamRef.current = null;
+      if (videoRef.current) videoRef.current.srcObject = null;
+      const message = error instanceof DOMException && error.name === "NotAllowedError" ? "Allow camera access in your browser settings, then try again." : error instanceof Error ? error.message : "The camera could not be started. Please try again.";
+      setErrorMessage(message); setStatusMessage("Camera unavailable");
+    } finally { setIsStarting(false); }
+  };
+
+  const undertoneLabel = undertone ? `${undertone[0].toUpperCase()}${undertone.slice(1)}` : "Waiting for a face";
+
+  return (
+    <>
+      <Script src={SCRIPT_URL} strategy="afterInteractive" onReady={() => {
+        if (!window.tasksVision && window.Vision) window.tasksVision = window.Vision;
+        if (!window.tasksVision) { setErrorMessage("Face analysis could not initialize. Please refresh and try again."); return; }
+        setIsLibraryReady(true);
+      }} onError={() => setErrorMessage("Face analysis could not load. Check your connection and try again.")} />
+      
+      <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] overflow-hidden">
+        <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
+          <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">
+            ← Back
+          </Link>
+          <span className="text-[14px] font-black uppercase tracking-tighter">Color Profile</span>
+          <div className="w-10"></div>
+        </header>
+
+        <div className="flex-1 flex flex-col px-6 py-6 overflow-y-auto">
+          <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-3">
+            Meet your <br />undertone.
+          </h1>
+          <p className="text-[14px] text-[#888888] mb-8 leading-relaxed">
+            Find the colors that feel like you. Face analysis happens right here in your browser.
+          </p>
+
+          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border-2 border-[#222222] bg-[#111111] flex items-center justify-center mb-6 shrink-0">
+            <video ref={videoRef} className="absolute inset-0 h-full w-full object-cover" autoPlay muted playsInline aria-label="Live camera preview" />
+            <canvas ref={overlayRef} className="absolute inset-0 h-full w-full pointer-events-none" aria-hidden="true" />
+            <canvas ref={processingCanvasRef} className="hidden" aria-hidden="true" />
+
+            {!cameraActive && (
+              <div className="relative z-10 flex flex-col items-center gap-3 text-[#555555]">
+                <span className="text-[14px] font-bold uppercase tracking-widest">Camera Offline</span>
+              </div>
+            )}
+            
+            {lightingWarning && cameraActive && <p className="absolute top-4 left-4 right-4 bg-[#111111] border border-[#333333] px-4 py-3 rounded-xl text-[12px] font-bold text-[#FFFFFF] text-center shadow-lg z-20" role="status">{lightingWarning}</p>}
+            
+            {cameraActive && (
+              <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full bg-[#111111] border border-[#333333] px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#FFFFFF]">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" /> Live
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4 mb-8">
+            <p className="text-[13px] font-medium text-[#888888] flex items-center gap-2" role="status">
+              <span className={`h-2 w-2 rounded-full ${cameraActive ? "bg-[#FFFFFF]" : "bg-[#333333]"}`} />
+              {cameraActive ? (faceDetected ? "Biometric mesh locked" : statusMessage) : statusMessage}
+            </p>
+            {errorMessage && <p className="text-[13px] font-medium text-red-500" role="alert">{errorMessage}</p>}
+          </div>
+
+          <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center mb-4" aria-live="polite">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mb-6">Your Result</p>
+            <div className={`h-32 w-32 rounded-full flex items-center justify-center border-4 mb-6 transition-colors duration-500 ${undertone === "warm" ? "border-[#FF8C00]" : undertone === "cool" ? "border-[#00BFFF]" : undertone === "neutral" ? "border-[#FFFFFF]" : "border-[#333333]"}`}>
+              <span className="text-5xl font-black tracking-tighter">{undertone ? undertoneLabel.slice(0, 1) : "—"}</span>
+            </div>
+            <h2 className="text-3xl font-black tracking-tighter mb-2">{undertoneLabel}</h2>
+            <p className="text-[13px] text-[#888888] text-center max-w-[250px]">
+              {undertone ? "A first read on the colors naturally reflected in your skin." : "We'll share your color read once your face is in frame."}
+            </p>
+          </div>
+        </div>
+
+        <div className="px-6 pb-8 pt-4 shrink-0 bg-gradient-to-t from-black via-black to-transparent z-10 relative">
+          {cameraActive ? (
+            <button className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px]" onClick={stopCamera} type="button">
+              Stop Camera
+            </button>
+          ) : (
+            <button className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50" disabled={isStarting || !faceLandmarker} onClick={startCamera} type="button">
+              {isStarting ? "Starting..." : faceLandmarker ? "Initialize Scan" : "Loading..."}
+            </button>
+          )}
+        </div>
+      </main>
+    </>
+  );
+}
+
+===== src/app/analyze/outfit/page.tsx =====
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { ChangeEvent, DragEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type DetectedItem = { name: string; box: number[] };
+type OutfitCheckResult = {
+  detected_items: DetectedItem[];
+  dominant_colors: string[];
+  harmony_score: number;
+  occasion_fit: string;
+  three_fixes: [string, string, string];
+  vibe: string;
+  style_archetype: string;
+};
+
+const MAX_FILE_BYTES = 4 * 1024 * 1024;
+const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const LOADING_STEPS = ["Isolating garments", "Detecting fabrics", "Mapping colors", "Calculating harmony"];
+
+export default function OutfitAnalysisPage() {
+  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [result, setResult] = useState<OutfitCheckResult | null>(null);
+  const [editedItems, setEditedItems] = useState<DetectedItem[]>([]);
+  const [isEditingItems, setIsEditingItems] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setLoadingStep(0);
+      interval = setInterval(() => { setLoadingStep((prev) => (prev < LOADING_STEPS.length - 1 ? prev + 1 : prev)); }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
+
+  const selectFile = (selectedFile: File | undefined) => {
+    if (!selectedFile) return;
+    setErrorMessage(null); setResult(null); setEditedItems([]);
+    if (!ACCEPTED_TYPES.includes(selectedFile.type)) { setFile(null); setErrorMessage("Choose a JPEG, PNG, or WebP image."); return; }
+    if (selectedFile.size > MAX_FILE_BYTES) { setFile(null); setErrorMessage("Choose an image smaller than 4 MB."); return; }
+    setFile(selectedFile);
+  };
+
+  const handleFileInput = (event: ChangeEvent<HTMLInputElement>) => { selectFile(event.target.files?.[0]); event.target.value = ""; };
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setIsDragging(false); selectFile(event.dataTransfer.files[0]); };
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => { event.preventDefault(); event.stopPropagation(); setIsDragging(true); };
+
+  const analyzeOutfit = async () => {
+    if (!file || isLoading) return;
+    setIsLoading(true); setErrorMessage(null); setResult(null);
+    const formData = new FormData(); formData.append("image", file);
+    try {
+      const response = await fetch("/api/outfit-check", { method: "POST", body: formData });
+      const payload = await response.json();
+      await new Promise(resolve => setTimeout(resolve, 4000)); 
+      if (!response.ok) throw new Error(payload.error || "Analysis failed.");
+      setResult(payload);
+      setEditedItems(payload.detected_items);
+    } catch (error: any) {
+      setErrorMessage(error.message);
+    } finally { setIsLoading(false); }
+  };
+
+  const cropImage = async (sourceFile: File, box: number[]): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject("No canvas context");
+        
+        const ymin = (box[0] / 1000) * img.height;
+        const xmin = (box[1] / 1000) * img.width;
+        const ymax = (box[2] / 1000) * img.height;
+        const xmax = (box[3] / 1000) * img.width;
+        
+        const width = xmax - xmin;
+        const height = ymax - ymin;
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, xmin, ymin, width, height, 0, 0, width, height);
+        
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject("Crop failed");
+        }, "image/png");
+      };
+      img.src = URL.createObjectURL(sourceFile);
+    });
+  };
+
+  const saveToCloset = async () => {
+    if (!file || !result || isSaving) return;
+    setIsSaving(true); setErrorMessage(null);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { router.push("/login"); return; }
+
+    try {
+      // DYNAMIC IMPORT: Prevents server build errors with ONNX/WASM
+      const { removeBackground } = await import("@imgly/background-removal");
+      
+      const savedItems = [];
+      
+      for (let i = 0; i < editedItems.length; i++) {
+        const item = editedItems[i];
+        setSaveStatus(`Extracting ${item.name} (${i + 1}/${editedItems.length})...`);
+        
+        const croppedBlob = await cropImage(file, item.box);
+        
+        setSaveStatus(`Isolating ${item.name}...`);
+        let finalBlob: Blob = croppedBlob;
+        try {
+            finalBlob = await removeBackground(croppedBlob);
+        } catch (e) {
+            console.warn("BG removal failed, using cropped version", e);
+        }
+
+        const fileName = `${user.id}/${Date.now()}-${i}.png`;
+        await supabase.storage.from('outfits').upload(fileName, finalBlob);
+        const { data: { publicUrl } } = supabase.storage.from('outfits').getPublicUrl(fileName);
+
+        savedItems.push({ name: item.name, image_url: publicUrl });
+      }
+
+      setSaveStatus("Saving to cloud...");
+      
+      await supabase.from('scans').insert({
+        user_id: user.id,
+        image_url: savedItems[0]?.image_url || null,
+        harmony_score: result.harmony_score,
+        detected_items: savedItems,
+        vibe: result.vibe,
+        style_archetype: result.style_archetype,
+      });
+
+      router.push("/closet");
+    } catch (error: any) {
+      setErrorMessage(error.message || "Failed to save.");
+    } finally { setIsSaving(false); setSaveStatus(""); }
+  };
+
+  if (isLoading) {
+    return (
+      <main className="relative flex flex-col h-screen bg-[#000000] text-[#FFFFFF] items-center justify-center p-6">
+        {previewUrl && <Image src={previewUrl} alt="Blur" fill className="object-cover opacity-20 blur-xl" unoptimized />}
+        <div className="relative z-10 flex flex-col gap-6 w-full max-w-[280px]">
+          <h2 className="text-[24px] font-black tracking-tighter text-center mb-4 text-[#FFFFFF]">Analyzing...</h2>
+          {LOADING_STEPS.map((step, index) => {
+            const isCompleted = index < loadingStep;
+            const isActive = index === loadingStep;
+            return (
+              <div key={index} className={`flex items-center gap-4 transition-all duration-300 ${isCompleted ? "opacity-50" : isActive ? "opacity-100 scale-105" : "opacity-20"}`}>
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 shrink-0 ${isCompleted ? "bg-[#00FF66] border-[#00FF66]" : isActive ? "border-[#FFFFFF]" : "border-[#333333]"}`}>
+                  {isCompleted && <span className="text-[#000000] text-[16px] font-black">✓</span>}
+                  {isActive && <span className="h-3 w-3 bg-[#FFFFFF] rounded-full animate-pulse" />}
+                </div>
+                <span className={`text-[14px] font-bold uppercase tracking-widest ${isCompleted ? "text-[#888888] line-through" : "text-[#FFFFFF]"}`}>{step}</span>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex flex-col h-[100dvh] bg-[#000000] text-[#FFFFFF] relative overflow-hidden">
+      <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
+        <Link href="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">← Back</Link>
+        <span className="text-[14px] font-black uppercase tracking-tighter">Outfit Check</span>
+        <div className="w-10"></div>
+      </header>
+
+      <div className="flex-1 flex flex-col px-6 py-8 overflow-y-auto">
+        {!result ? (
+          <div className="flex flex-col h-full">
+            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-3">Scan your <br />fit.</h1>
+            <p className="text-[14px] text-[#888888] mb-8 leading-relaxed">Drop a photo below. Our AI extracts the garments and removes you from the image for total privacy.</p>
+            <div className={`relative flex-1 w-full overflow-hidden rounded-[2rem] bg-[#111111] border-2 transition-all ${isDragging ? "border-[#FFFFFF]" : "border-[#222222] border-dashed"} flex flex-col items-center justify-center`} onDragOver={handleDragOver} onDragEnter={handleDragOver} onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDragging(false); }} onDrop={handleDrop}>
+              {previewUrl ? <Image className="object-cover w-full h-full absolute inset-0" src={previewUrl} alt="Preview" width={720} height={900} unoptimized /> : <div className="flex flex-col items-center gap-3 text-center p-6"><span className="text-4xl text-[#FFFFFF] mb-2">+</span><span className="text-[14px] font-bold uppercase tracking-widest text-[#FFFFFF]">Tap to Upload</span></div>}
+              <input className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-50" type="file" accept="image/*" onChange={handleFileInput} />
+            </div>
+            {errorMessage && <p className="mt-4 text-[13px] text-red-500 font-bold text-center bg-red-500/10 p-3 rounded-xl border border-red-500/20">{errorMessage}</p>}
+          </div>
+        ) : (
+          <div className="flex flex-col h-full gap-5 pb-10 animate-slide-up">
+            <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-2">Analysis <br />complete.</h1>
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center text-center">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] mb-3">{result.vibe}</p>
+              <h2 className="text-[28px] font-black tracking-tighter mb-2 leading-none">{result.style_archetype}</h2>
+              <p className="text-[14px] text-[#888888] leading-relaxed max-w-[260px]">{result.occasion_fit}</p>
+            </div>
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 flex flex-col items-center justify-center">
+              <div className="relative h-48 w-48 rounded-full flex items-center justify-center mb-2" style={{ background: `conic-gradient(#FFFFFF ${result.harmony_score}%, #222222 0)` }}>
+                <div className="absolute inset-2 bg-[#111111] rounded-full flex flex-col items-center justify-center"><strong className="text-6xl font-black tracking-tighter">{result.harmony_score}</strong><span className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mt-1">Harmony</span></div>
+              </div>
+            </div>
+
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">Detected Items</p>
+                <button onClick={() => setIsEditingItems(true)} className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] bg-[#00FF66]/10 px-3 py-1 rounded-full">Edit</button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {editedItems.map((item, i) => (
+                  <div key={i} className="flex items-start gap-2"><span className="text-[#00FF66] mt-1 text-[10px]">●</span><span className="text-[14px] text-[#FFFFFF] capitalize">{item.name}</span></div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 mt-2">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#555555] ml-2">Three Fixes</p>
+              {result.three_fixes.map((fix, i) => (
+                <div key={i} className="bg-[#111111] border border-[#222222] rounded-[1.5rem] p-5 flex gap-4"><span className="text-[14px] font-black text-[#00FF66] mt-0.5">0{i+1}</span><p className="text-[14px] text-[#CCCCCC] leading-relaxed">{fix}</p></div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="px-6 pb-8 pt-4 shrink-0 bg-gradient-to-t from-black via-black to-transparent z-10 relative">
+        {!result ? (
+          <button onClick={analyzeOutfit} disabled={!file} className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50">Analyze Outfit</button>
+        ) : (
+          <button onClick={saveToCloset} disabled={isSaving} className="w-full flex items-center justify-center bg-[#00FF66] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50 shadow-[0_0_20px_rgba(0,255,102,0.2)]">
+            {isSaving ? saveStatus : "Save to Closet"}
+          </button>
+        )}
+      </div>
+
+      {isEditingItems && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/80 backdrop-blur-md">
+          <div className="bg-[#111111] rounded-t-[2.5rem] p-6 border-t border-[#222222] w-full max-h-[85vh] flex flex-col animate-slide-up">
+            <div className="flex justify-between items-center mb-6 shrink-0">
+              <h3 className="text-[24px] font-black tracking-tight">Adjust Items</h3>
+              <button onClick={() => setIsEditingItems(false)} className="text-[#888888] bg-[#222222] rounded-full w-10 h-10 flex items-center justify-center text-lg">✕</button>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col gap-3 mb-6">
+              {editedItems.map((item, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <input type="text" value={item.name} onChange={(e) => { const newItems = [...editedItems]; newItems[i].name = e.target.value; setEditedItems(newItems); }} className="flex-1 bg-[#000000] border border-[#333333] text-[#FFFFFF] text-[15px] px-5 py-4 rounded-xl focus:outline-none" />
+                  <button onClick={() => setEditedItems(editedItems.filter((_, idx) => idx !== i))} className="h-[54px] w-[54px] shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 rounded-xl">✕</button>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setIsEditingItems(false)} className="w-full shrink-0 bg-[#FFFFFF] text-[#000000] h-[64px] rounded-full font-black uppercase tracking-widest text-[15px]">Save Changes</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+===== src/app/api/admin/data/route.ts =====
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+
+export async function GET() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+    return NextResponse.json({ 
+      error: "Unauthorized", 
+      userEmail: user?.email || "Not logged in" 
+    }, { status: 401 });
+  }
+
+  const adminSupabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const [profiles, scans, waitlist] = await Promise.all([
+    adminSupabase.from('profiles').select('*').order('created_at', { ascending: false }),
+    adminSupabase.from('scans').select('*').order('created_at', { ascending: false }),
+    adminSupabase.from('waitlist').select('*').order('created_at', { ascending: false })
+  ]);
+
+  return NextResponse.json({
+    profiles: profiles.data || [],
+    scans: scans.data || [],
+    waitlist: waitlist.data || []
+  });
+}
+
+===== src/app/api/arbitrage/route.ts =====
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+export async function GET() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { data: scans } = await supabase.from('scans').select('detected_items').eq('user_id', user.id);
+
+    if (!scans || scans.length === 0) {
+      return NextResponse.json({ error: "No scans found" }, { status: 400 });
+    }
+
+    const allItems = new Set<string>();
+    scans.forEach((scan) => {
+      scan.detected_items.forEach((item: string) => allItems.add(item.toLowerCase().trim()));
+    });
+    const wardrobeList = Array.from(allItems).join(", ");
+
+    // Fallback for testing if the wardrobe is too small
+    if (allItems.size < 3) {
+      return NextResponse.json({ 
+        missing_item: "White Leather Sneakers",
+        unlocks_count: 8,
+        reason: "A clean white sneaker will seamlessly bridge your casual tops and tailored trousers.",
+        search_query: "white leather sneakers"
+      });
+    }
+
+    const prompt = `You are an elite fashion stylist. Here is the user's exact wardrobe: [${wardrobeList}]. 
+    Analyze the gaps. What ONE single item (e.g., "White leather sneakers" or "Camel overcoat") should they buy that will mathematically unlock the most new outfit combinations with their existing clothes? 
+    Return ONLY a valid JSON object with exactly these keys:
+    - missing_item (string)
+    - unlocks_count (number)
+    - reason (string, 1 sentence)
+    - search_query (string, 2-3 words)`;
+
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [{ role: "system", content: prompt }],
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!response.ok) throw new Error("Groq API failed");
+    
+    const payload = await response.json();
+    const rawContent = payload.choices[0].message.content;
+    
+    // Strip markdown if the model hallucinates it
+    const cleanedContent = rawContent.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const result = JSON.parse(cleanedContent);
+    
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("Arbitrage Error:", error);
+    // Return a mock result on failure so the UI doesn't break
+    return NextResponse.json({ 
+      missing_item: "Classic Beige Trench Coat",
+      unlocks_count: 12,
+      reason: "This transitional piece works with every dark and light layer you already own.",
+      search_query: "beige trench coat"
+    });
+  }
+}
+
+===== src/app/api/outfit-check/route.ts =====
+import { NextResponse } from "next/server";
+
+export const runtime = "nodejs";
+
+const GROQ_MODEL = "qwen/qwen3.8-27b";
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+
+const RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    detected_items: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          box: { type: "ARRAY", items: { type: "NUMBER" }, minItems: 4, maxItems: 4 }
+        },
+        required: ["name", "box"]
+      }
+    },
+    dominant_colors: { type: "ARRAY", items: { type: "STRING" } },
+    harmony_score: { type: "NUMBER" },
+    occasion_fit: { type: "STRING" },
+    three_fixes: { type: "ARRAY", items: { type: "STRING" }, minItems: 3, maxItems: 3 },
+    vibe: { type: "STRING" },
+    style_archetype: { type: "STRING" }
+  },
+  required: ["detected_items", "dominant_colors", "harmony_score", "occasion_fit", "three_fixes", "vibe", "style_archetype"],
+};
+
+const SYSTEM_PROMPT = `You are a high-end personal stylist and fashion director. Analyze the clothing items.
+SAFETY: Evaluate clothing only. Never comment on the user's body.
+Return ONLY a valid JSON object matching this schema: ${JSON.stringify(RESPONSE_SCHEMA)}.
+- detected_items: array of clothing pieces. For each, provide a "box" array with [ymin, xmin, ymax, xmax] normalized to 0-1000 (e.g., [100, 200, 800, 900]).
+- dominant_colors: array of hex codes.
+- harmony_score: number 0-100.
+- occasion_fit: short sentence.
+- three_fixes: exactly 3 actionable improvements.
+- vibe: 2-3 word description.
+- style_archetype: known style persona.`;
+
+type OutfitCheckResult = {
+  detected_items: { name: string; box: number[] }[];
+  dominant_colors: string[];
+  harmony_score: number;
+  occasion_fit: string;
+  three_fixes: string[];
+  vibe: string;
+  style_archetype: string;
+};
+
+async function readBoundedBody(request: Request): Promise<ArrayBuffer | null> {
+  const contentLength = Number(request.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) return null;
+  if (!request.body) return new ArrayBuffer(0);
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_REQUEST_BYTES) { await reader.cancel(); return null; }
+    chunks.push(value);
+  }
+  const body = new ArrayBuffer(totalBytes);
+  const bodyBytes = new Uint8Array(body);
+  let offset = 0;
+  for (const chunk of chunks) { bodyBytes.set(chunk, offset); offset += chunk.byteLength; }
+  return body;
+}
+
+function getImageMimeType(bytes: Uint8Array): string | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "image/webp";
+  return null;
+}
+
+function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
+  if (typeof value !== "object" || value === null) return false;
+  const result = value as Record<string, unknown>;
+  if (!Array.isArray(result.detected_items)) return false;
+  for (const item of result.detected_items) {
+    if (typeof item !== "object" || item === null) return false;
+    const i = item as Record<string, unknown>;
+    if (typeof i.name !== "string" || !Array.isArray(i.box) || i.box.length !== 4) return false;
+  }
+  return (
+    Array.isArray(result.dominant_colors) && typeof result.harmony_score === "number" &&
+    typeof result.occasion_fit === "string" && Array.isArray(result.three_fixes) && result.three_fixes.length === 3 &&
+    typeof result.vibe === "string" && typeof result.style_archetype === "string"
+  );
+}
+
+export async function POST(request: Request) {
+  if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
+    return NextResponse.json({ error: "Upload an image using multipart/form-data." }, { status: 415 });
+  }
+  const boundedBody = await readBoundedBody(request);
+  if (!boundedBody) return NextResponse.json({ error: "The upload exceeds the request limit." }, { status: 413 });
+
+  let formData: FormData;
+  try {
+    formData = await new Request(request.url, { method: "POST", headers: request.headers, body: boundedBody }).formData();
+  } catch { return NextResponse.json({ error: "The multipart upload could not be read." }, { status: 400 }); }
+
+  const image = formData.get("image");
+  if (!(image instanceof File) || image.size === 0 || image.size > MAX_IMAGE_BYTES) return NextResponse.json({ error: "Invalid image." }, { status: 413 });
+
+  const bytes = new Uint8Array(await image.arrayBuffer());
+  const mimeType = getImageMimeType(bytes);
+  if (!mimeType) return NextResponse.json({ error: "Use a valid JPEG, PNG, or WebP." }, { status: 415 });
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "Outfit analysis is not configured yet." }, { status: 503 });
+
+  const base64Image = Buffer.from(bytes).toString("base64");
+  let providerResponse: Response;
+  try {
+    providerResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: [{ type: "text", text: "Review this outfit and return structured JSON." }, { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } }] },
+        ],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!providerResponse.ok) throw new Error(await providerResponse.text());
+  } catch (error) {
+    console.error("Groq Failure:", error);
+    return NextResponse.json({ error: "Outfit analysis is temporarily unavailable." }, { status: 502 });
+  }
+
+  let providerPayload: unknown;
+  try { providerPayload = await providerResponse.json(); } catch { return NextResponse.json({ error: "Invalid Groq response." }, { status: 502 }); }
+
+  const responseText = (providerPayload as any)?.choices?.[0]?.message?.content;
+  if (!responseText) return NextResponse.json({ error: "Groq returned no feedback." }, { status: 502 });
+
+  let result: unknown;
+  try { result = JSON.parse(responseText.replace(/```json/gi, "").replace(/```/g, "").trim()); } 
+  catch { return NextResponse.json({ error: "Groq returned invalid JSON." }, { status: 502 }); }
+
+  if (!isOutfitCheckResult(result)) return NextResponse.json({ error: "Groq returned feedback in an invalid format." }, { status: 502 });
+
+  return NextResponse.json(result);
+}
+
+===== src/app/api/try-on/route.ts =====
+import { NextRequest, NextResponse } from "next/server";
+import type { TryOnResult } from "@/lib/tryon/types";
+
+export async function POST(req: NextRequest) {
+  try {
+    const form = await req.formData();
+    const garmentId = form.get("garmentId") as string;
+    
+    await new Promise((resolve) => setTimeout(resolve, 3500));
+
+    const body: TryOnResult = {
+      status: "preview_only",
+      provider: null,
+      garmentId: garmentId || "unknown",
+      renderUrl: null,
+      message: "Virtual Studio is in Preview Mode. No cloud rendering was performed.",
+    };
+
+    return NextResponse.json(body, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
+  }
+}
+
+===== src/app/api/waitlist/route.ts =====
+import { NextResponse } from "next/server";
+import { getSupabaseClient } from "@/lib/supabase";
+
+export const runtime = "nodejs";
+
+export async function POST(request: Request) {
+  let body: unknown;
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+  }
+
+  const email =
+    typeof body === "object" && body !== null && "email" in body && typeof body.email === "string"
+      ? body.email.trim().toLowerCase()
+      : "";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+  }
+
+  let supabase;
+
+  try {
+    supabase = getSupabaseClient();
+  } catch {
+    return NextResponse.json({ error: "Waitlist signup is not configured yet." }, { status: 503 });
+  }
+
+  let insertError: { code?: string; message: string } | null;
+
+  try {
+    const { error } = await supabase.from("waitlist").insert([{ email: email }]);
+    insertError = error;
+  } catch (error) {
+    console.error("Waitlist insert transport failure:", error);
+    return NextResponse.json(
+      { error: "Waitlist service is unreachable. Check the Supabase project URL and server network." },
+      { status: 503 },
+    );
+  }
+
+  if (insertError?.code === "23505") {
+    return NextResponse.json({ message: "Youâ€™re already on the list. Weâ€™ll be in touch." }, { status: 200 });
+  }
+
+  if (insertError) {
+    console.error("Waitlist insert failed:", insertError.message);
+    return NextResponse.json({ error: "We couldnâ€™t add you just now. Please try again." }, { status: 500 });
+  }
+
+  return NextResponse.json({ message: "Youâ€™re on the list. Keep an eye on your inbox." }, { status: 201 });
+}
+
+===== src/app/closet/page.tsx =====
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type ClosetItem = {
+  id: string;
+  name: string;
+  wears: number;
+  cpw: number;
+  image: string;
+};
+
+// Safe parser to handle both old string-array data and new object-array data
+function normalizeItems(rawItems: any, fallbackImage: string): { name: string; image: string }[] {
+  if (!Array.isArray(rawItems)) return [];
+  
+  return rawItems.map((item, i) => {
+    if (typeof item === "string") {
+      // Old format: just a string
+      return { name: item, image: fallbackImage };
+    }
+    if (typeof item === "object" && item !== null && "name" in item) {
+      // New format: { name, image_url }
+      return { name: item.name, image: item.image_url || fallbackImage };
+    }
+    return { name: "Unknown Item", image: fallbackImage };
+  });
+}
+
+export default function ClosetPage() {
+  const router = useRouter();
+  const [cleanClosetData, setCleanClosetData] = useState<ClosetItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCloset = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data } = await supabase
+        .from("scans")
+        .select("detected_items, image_url")
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        const itemMap = new Map<
+          string,
+          { name: string; totalWears: number; image: string; basePrice: number }
+        >();
+
+        data.forEach((scan) => {
+          const items = normalizeItems(scan.detected_items, scan.image_url);
+          
+          items.forEach((item) => {
+            if (!item.name || !item.name.trim()) return;
+            
+            const normalizedName = item.name
+              .replace(/[^a-zA-Z0-9 ]/g, "")
+              .trim()
+              .toLowerCase();
+
+            if (itemMap.has(normalizedName)) {
+              const existing = itemMap.get(normalizedName)!;
+              itemMap.set(normalizedName, {
+                ...existing,
+                totalWears: existing.totalWears + 1,
+                image: existing.image || item.image,
+              });
+            } else {
+              itemMap.set(normalizedName, {
+                name: item.name,
+                totalWears: 1,
+                image: item.image,
+                basePrice: Math.floor(Math.random() * 80) + 40,
+              });
+            }
+          });
+        });
+
+        const finalData = Array.from(itemMap.entries()).map(([key, d]) => ({
+          id: key,
+          name: d.name,
+          wears: d.totalWears,
+          cpw: d.basePrice / d.totalWears,
+          image: d.image,
+        }));
+
+        setCleanClosetData(finalData);
+      }
+      setIsLoading(false);
+    };
+    fetchCloset();
+  }, [router]);
+
+  if (isLoading) {
+    return (
+      <main className="flex items-center justify-center h-[100dvh] bg-black text-white">
+        <p className="text-[14px] font-bold uppercase tracking-widest text-[#888888] animate-pulse">
+          Syncing Closet...
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex flex-col h-[100dvh] bg-black text-white overflow-hidden">
+      <header className="flex justify-between items-center px-6 py-6 shrink-0 z-10 border-b border-[#1A1A1A]">
+        <span className="text-[22px] font-black tracking-tighter">STYLE.AI</span>
+        <Link
+          href="/dashboard"
+          className="text-[11px] font-bold uppercase tracking-widest text-[#888888] hover:text-[#FFFFFF] transition-colors"
+        >
+          Back
+        </Link>
+      </header>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-5 py-8 pb-24">
+        <div className="mb-8">
+          <h1 className="text-[36px] font-black leading-[1.05] tracking-tighter mb-2">
+            Your Closet.
+          </h1>
+          <p className="text-[14px] text-neutral-400 font-medium">
+            Every unique item you&apos;ve scanned.
+          </p>
+        </div>
+
+        {cleanClosetData.length === 0 ? (
+          <div className="bg-[#0B0B0B] border border-[#1A1A1A] rounded-[2rem] p-8 text-center flex flex-col items-center mt-10">
+            <p className="text-[15px] font-bold text-white mb-2">Your closet is empty.</p>
+            <p className="text-[13px] text-neutral-400">
+              Scan your first outfit to start building your digital wardrobe.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 w-full">
+            {cleanClosetData.map((item) => (
+              <ClosetCard key={item.id} item={item} />
+            ))}
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
+
+function ClosetCard({ item }: { item: ClosetItem }) {
+  const [broken, setBroken] = useState(false);
+  const showImage = !!item.image && !broken;
+
+  return (
+    <div className="flex flex-col bg-[#0B0B0B] border border-[#1A1A1A] rounded-2xl overflow-hidden w-full">
+      <div className="relative aspect-square w-full bg-black">
+        {showImage ? (
+          <Image
+            src={item.image}
+            alt={item.name}
+            fill
+            unoptimized
+            sizes="(max-width: 448px) 45vw, 220px"
+            className="object-cover opacity-90"
+            onError={() => setBroken(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-[10px] font-black uppercase tracking-widest text-neutral-600">
+              No Image
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="p-3 flex flex-col justify-between gap-3">
+        <h3 className="text-[12px] font-bold tracking-tight text-white leading-snug line-clamp-2">
+          {item.name}
+        </h3>
+
+        <div className="flex justify-between items-center w-full">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-[#00FF66] rounded-full" />
+            <span className="text-[9px] font-black uppercase tracking-wider text-[#00FF66]">
+              {item.wears} {item.wears === 1 ? "Wear" : "Wears"}
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="text-[12px] font-black text-white">
+              ${item.cpw.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+===== src/app/dashboard/dashboard.module.css =====
+.dashboard {
+  --surface: #141416;
+  --surface-raised: #1a1a1e;
+  --line: #23232a;
+  --muted: #8a8a93;
+  --soft: #d4d4d8;
+  --accent: #f5a623;
+  --accent-soft: #f5a62320;
+  width: min(100%, 1120px);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 0 24px 120px;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #1f1f26 0%, transparent 60%),
+    #0a0a0b;
+  color: #fafafa;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.header {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fafafa;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.brandMark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profileLink {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 40px 0 24px;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.intro h1 {
+  margin: 0;
+  color: #fafafa;
+  font-size: clamp(30px, 5vw, 44px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.dateLabel { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+.sampleNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.analyticsCard,
+.metricCard,
+.historyCard,
+.accessCard {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+}
+
+.analyticsCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  gap: 24px;
+  padding: clamp(24px, 4vw, 36px);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 40%);
+}
+
+.scorePanel {
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+  padding-right: 24px;
+}
+
+.scoreLabel {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.scoreDial {
+  display: grid;
+  width: 180px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) 0 259deg, #2a2a32 259deg 360deg);
+  box-shadow: 0 16px 32px rgb(0 0 0 / 40%), inset 0 0 0 1px rgb(255 255 255 / 6%);
+}
+
+.scoreDialInner {
+  display: flex;
+  width: calc(100% - 16px);
+  aspect-ratio: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2a2a32;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.scoreValue {
+  color: #fafafa;
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.scoreScale { margin-top: 6px; color: var(--muted); font-size: 12px; }
+.scoreCaption { margin: 18px 0 0; color: var(--soft); font-size: 13px; }
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: center;
+  gap: 12px;
+}
+
+.metricCard {
+  display: flex;
+  min-height: 200px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 10px;
+  background: var(--surface-raised);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.metricCard:hover {
+  border-color: #3a3a44;
+  transform: translateY(-2px);
+}
+
+.metricRing {
+  display: grid;
+  width: 72px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) 0 var(--metric-angle), #2a2a32 var(--metric-angle) 360deg);
+  box-shadow: 0 8px 16px rgb(0 0 0 / 30%), inset 0 0 0 1px rgb(255 255 255 / 6%);
+  transform: rotate(-90deg);
+}
+
+.metricRingInner {
+  display: grid;
+  width: calc(100% - 8px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  color: #fafafa;
+  font-size: 16px;
+  font-weight: 700;
+  transform: rotate(90deg);
+}
+
+.metricName {
+  max-width: 110px;
+  margin: 16px 0 0;
+  color: var(--soft);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.metricHint { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+
+.sectionHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 36px 2px 16px;
+}
+
+.sectionHeading h2 {
+  margin: 0;
+  color: #fafafa;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sectionMeta { color: var(--muted); font-size: 12px; }
+
+.historyCard {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.historyRow:hover {
+  border-color: #3a3a44;
+  transform: translateY(-2px);
+}
+
+.thumb {
+  position: relative;
+  display: grid;
+  width: 72px;
+  height: 82px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-raised);
+}
+
+.thumbImage { width: 100%; height: 100%; object-fit: cover; }
+
+.sampleThumb {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 32%, rgb(255 255 255 / 18%), transparent 26%),
+    linear-gradient(150deg, var(--thumb-a), var(--thumb-b));
+}
+
+.garmentShape {
+  width: 30px;
+  height: 44px;
+  border: 1px solid rgb(255 255 255 / 25%);
+  border-radius: 8px 8px 6px 6px;
+  background: linear-gradient(90deg, rgb(255 255 255 / 12%), transparent 48%, rgb(0 0 0 / 13%) 50%);
+  clip-path: polygon(20% 0, 39% 7%, 50% 15%, 61% 7%, 80% 0, 100% 20%, 82% 32%, 76% 24%, 82% 100%, 18% 100%, 24% 24%, 18% 32%, 0 20%);
+}
+
+.historyInfo { min-width: 0; }
+.historyTitle { overflow: hidden; margin: 0; color: #fafafa; font-size: 14px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.historyCaption { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+.swatchRow { display: flex; gap: 6px; margin-top: 10px; }
+.colorChip { width: 14px; height: 14px; border: 1px solid rgb(255 255 255 / 15%); border-radius: 50%; }
+.historyScore { color: var(--accent); font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+.scanNotice {
+  margin: 12px 2px 0;
+  color: #b7c8bb;
+  font-size: 13px;
+}
+
+.scanError { color: #fda4af; }
+
+.lowerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.quickLinks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.quickLink {
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.quickLink:hover {
+  border-color: #3a3a44;
+  transform: translateY(-2px);
+}
+
+.quickIcon { color: var(--accent); font-size: 22px; }
+.quickLink strong { color: #fafafa; font-size: 14px; font-weight: 600; }
+.quickLink span:last-child { color: var(--muted); font-size: 12px; }
+
+.accessCard {
+  padding: 24px;
+  background: var(--surface);
+}
+.accessCard h2 { margin: 0; color: #fafafa; font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+.accessCard > p { margin: 8px 0 18px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+.floatingUpload {
+  position: fixed;
+  z-index: 20;
+  right: max(24px, calc((100vw - 1120px) / 2 + 24px));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  display: grid;
+  width: 64px;
+  height: 64px;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #121214;
+  box-shadow: 0 16px 40px rgb(245 166 35 / 35%);
+  cursor: pointer;
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.floatingUpload:hover { filter: brightness(1.05); transform: translateY(-2px); }
+.floatingUpload:focus-within { outline: 3px solid var(--accent); outline-offset: 4px; }
+.floatingIcon { font-size: 30px; font-weight: 400; line-height: 1; pointer-events: none; }
+.floatingInput { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.floatingUpload[aria-busy="true"] { opacity: 0.7; }
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 768px) {
+  .dashboard { padding: 0 16px 104px; }
+  .header { min-height: 64px; }
+  .intro { padding: 32px 0 20px; flex-direction: column; align-items: flex-start; }
+  .analyticsCard { grid-template-columns: 1fr; gap: 20px; padding: 20px; }
+  .scorePanel { min-height: 240px; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 20px; }
+  .metricGrid { gap: 10px; }
+  .metricCard { min-height: 170px; }
+  .lowerGrid { grid-template-columns: 1fr; }
+  .quickLinks { grid-template-columns: 1fr 1fr; }
+  .floatingUpload { right: 18px; width: 60px; height: 60px; }
+}
+
+@media (max-width: 420px) {
+  .dashboard { padding-right: 12px; padding-left: 12px; }
+  .historyRow { grid-template-columns: 60px minmax(0, 1fr) auto; gap: 12px; padding: 14px; }
+  .thumb { width: 60px; height: 70px; }
+  .quickLinks { grid-template-columns: 1fr; }
+  .historyTitle { font-size: 13px; }
+  .historyScore { font-size: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickLink, .metricCard, .historyRow, .floatingUpload { transition: none; }
+}
+
+===== src/app/dashboard/page.tsx =====
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+
+type ScanRecord = {
+  id: string;
+  harmony_score: number;
+  detected_items: string[];
+  image_url: string;
+  created_at: string;
+};
+
+type ArbitrageResult = {
+  missing_item: string;
+  unlocks_count: number;
+  reason: string;
+  search_query: string;
+};
+
+export default function MobileDashboardPage() {
+  const router = useRouter();
+  const [history, setHistory] = useState<ScanRecord[]>([]);
+  const [arbitrage, setArbitrage] = useState<ArbitrageResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
+      const { data } = await supabase
+        .from('scans')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (data) setHistory(data);
+      setIsLoading(false);
+
+      if (data && data.length > 0) {
+        try {
+          const res = await fetch("/api/arbitrage");
+          const resData = await res.json();
+          if (res.ok && resData.missing_item) setArbitrage(resData);
+        } catch (e) { console.error(e); }
+      }
+    };
+    fetchData();
+  }, [router]);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const latestScore = history.length > 0 ? history[0].harmony_score : 0;
+  const radius = 45;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = history.length > 0 ? circumference - (latestScore / 100) * circumference : circumference;
+
+  if (isLoading) {
+    return (
+      <main className="flex items-center justify-center h-screen bg-[#000000] text-[#FFFFFF]">
+        <p className="text-[14px] font-bold uppercase tracking-widest text-[#888888] animate-pulse">Syncing Closet...</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] overflow-hidden">
+      <header className="flex justify-between items-center px-6 py-6 shrink-0 z-10">
+        <span className="text-[22px] font-black tracking-tighter">STYLE.AI</span>
+        <button onClick={handleLogout} className="text-[11px] font-bold uppercase tracking-widest text-[#888888] hover:text-[#FFFFFF]">Log Out</button>
+      </header>
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-6 pb-6">
+        
+        <div className="flex flex-col items-center justify-center mt-4 mb-10 shrink-0">
+          <div className="relative w-64 h-64 flex items-center justify-center mb-6">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r={radius} fill="none" stroke="#222222" strokeWidth="8" />
+              <circle cx="50" cy="50" r={radius} fill="none" stroke="#00FF66" strokeWidth="8" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} strokeLinecap="round" className="transition-all duration-1000 ease-out" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-[13px] font-bold uppercase tracking-widest text-[#888888] mb-1">Harmony</span>
+              <strong className="text-[72px] font-black leading-none tracking-tighter">{latestScore}</strong>
+              <span className="text-[13px] font-bold text-[#555555] mt-1">/ 100</span>
+            </div>
+          </div>
+          <p className="text-[13px] font-bold text-[#888888] uppercase tracking-widest">Today&apos;s Style Pulse</p>
+        </div>
+
+        {/* Redesigned Arbitrage Card */}
+        {arbitrage && (
+          <div className="mb-10 bg-[#111111] border border-[#222222] rounded-[2rem] p-8 relative overflow-hidden shadow-[0_0_30px_rgba(0,255,102,0.05)]">
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#00FF66] via-[#00FF66]/50 to-transparent"></div>
+            
+            <div className="flex items-center gap-2 mb-4">
+              <span className="h-2 w-2 rounded-full bg-[#00FF66] animate-pulse" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-[#00FF66]">Missing Link Detected</p>
+            </div>
+
+            <h3 className="text-[26px] font-black tracking-tighter leading-none mb-3 capitalize">Buy {arbitrage.missing_item}</h3>
+            <p className="text-[14px] text-[#888888] leading-relaxed mb-6">{arbitrage.reason}</p>
+            
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between bg-[#000000] border border-[#222222] rounded-xl p-3">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">Combinations Unlocked</span>
+                <span className="text-[18px] font-black text-[#FFFFFF]">{arbitrage.unlocks_count}</span>
+              </div>
+              <a href={`https://www.google.com/search?q=${encodeURIComponent(arbitrage.search_query)}`} target="_blank" rel="noreferrer" className="w-full flex items-center justify-center text-[12px] font-black uppercase tracking-widest text-[#000000] bg-[#FFFFFF] h-[56px] rounded-full hover:bg-[#E0E0E0] active:scale-[0.98] transition-all">
+                Shop This Item ↗
+              </a>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-end mb-2">
+            <h2 className="text-[18px] font-bold tracking-tight">Recent Scans</h2>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#555555]">{history.length} items</span>
+          </div>
+
+          {history.length === 0 ? (
+            <div className="bg-[#111111] border border-[#222222] rounded-[2rem] p-8 text-center flex flex-col items-center">
+              <p className="text-[15px] font-bold text-[#FFFFFF] mb-2">No outfits scanned yet.</p>
+              <p className="text-[13px] text-[#888888]">Tap the + button below to start building your cloud wardrobe.</p>
+            </div>
+          ) : (
+            history.map((entry) => (
+              <div key={entry.id} className="bg-[#111111] border border-[#222222] rounded-[1.5rem] p-4 flex items-center gap-4">
+                <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-[#222222] shrink-0">
+                  {entry.image_url && <Image src={entry.image_url} alt="Scan" fill className="object-cover" unoptimized />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-bold text-[#FFFFFF] truncate capitalize">{entry.detected_items.slice(0, 2).join(" + ")}</p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className="text-[18px] font-black text-[#00FF66] tracking-tighter">{entry.harmony_score}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* 5-Column Grid for Perfect Spacing */}
+      <div className="shrink-0 h-[88px] bg-[#000000] border-t border-[#222222] grid grid-cols-5 items-center relative">
+        <Link href="/dashboard" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#FFFFFF]">◉</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#FFFFFF]">Home</span>
+        </Link>
+        
+        <Link href="/closet" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">👕</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Closet</span>
+        </Link>
+
+        {/* Empty column for the floating + button */}
+        <div className="w-full h-full"></div>
+
+        <Link href="/dashboard/try-on" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">✦</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Studio</span>
+        </Link>
+
+        <Link href="/admin" className="flex flex-col items-center gap-1">
+          <span className="text-[20px] text-[#888888]">⚙</span>
+          <span className="text-[9px] font-bold uppercase tracking-widest text-[#888888]">Admin</span>
+        </Link>
+
+        <Link href="/analyze/outfit" className="absolute -top-5 left-1/2 -translate-x-1/2 h-[54px] w-[54px] bg-[#FFFFFF] rounded-[1.2rem] flex items-center justify-center shadow-[0_4px_20px_rgba(255,255,255,0.2)] active:scale-95 transition-transform">
+          <span className="text-[28px] font-black text-[#000000] font-sans font-light mb-1">+</span>
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+===== src/app/dashboard/try-on/page.tsx =====
+/* eslint-disable @next/next/no-img-element */
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { GARMENTS } from "@/lib/tryon/catalogue";
+import type { Garment, TryOnPhase, TryOnResult } from "@/lib/tryon/types";
+
+const STAGES = [
+  { key: "ingest", label: "Reading portrait silhouette" },
+  { key: "geometry", label: "Simulating garment geometry" },
+  { key: "drape", label: "Preparing preview composite" },
+  { key: "composite", label: "Finalizing demo layout" },
+];
+
+export default function VirtualStudioPage() {
+  const [phase, setPhase] = useState<TryOnPhase>("idle");
+  const [loadingStep, setLoadingStep] = useState(0);
+  const [selfie, setSelfie] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [garment, setGarment] = useState<Garment | null>(null);
+  const [result, setResult] = useState<TryOnResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Canvas interaction state
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
+
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+  }, [previewUrl]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (phase === "generating") {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev < STAGES.length - 1 ? prev + 1 : prev));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  const onPickSelfie = useCallback((file: File | null) => {
+    if (!file) return;
+    setSelfie(file);
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+    setOffset({ x: 0, y: 0 });
+    setZoom(1);
+    setResult(null);
+    setError(null);
+    setPhase("ready");
+  }, []);
+
+  const generate = async () => {
+    if (!selfie || !garment) return;
+    setPhase("generating");
+    setError(null);
+    setResult(null);
+
+    try {
+      const body = new FormData();
+      body.append("selfie", selfie);
+      body.append("garmentId", garment.id);
+
+      const res = await fetch("/api/try-on", { method: "POST", body });
+      const data = await res.json();
+      
+      await new Promise(resolve => setTimeout(resolve, 4000));
+
+      if (!res.ok) throw new Error(data.error || "Failed");
+
+      setResult(data);
+      setPhase("result");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setPhase("error");
+    }
+  };
+
+  // ================= FULL SCREEN LOADING =================
+  if (phase === "generating") {
+    return (
+      <main className="relative flex flex-col h-screen bg-[#000000] text-[#FFFFFF] items-center justify-center p-6">
+        {previewUrl && (
+          <Image src={previewUrl} alt="Blur" fill className="object-cover opacity-20 blur-xl" unoptimized />
+        )}
+        
+        <div className="relative z-10 flex flex-col gap-6 w-full max-w-[280px]">
+          <h2 className="text-[24px] font-black tracking-tighter text-center mb-4 text-[#FFFFFF]">Simulating...</h2>
+          {STAGES.map((step, index) => {
+            const isCompleted = index < loadingStep;
+            const isActive = index === loadingStep;
+            return (
+              <div key={index} className={`flex items-center gap-4 transition-all duration-300 ${isCompleted ? "opacity-50" : isActive ? "opacity-100 scale-105" : "opacity-20"}`}>
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border-2 shrink-0 ${isCompleted ? "bg-[#00FF66] border-[#00FF66]" : isActive ? "border-[#FFFFFF]" : "border-[#333333]"}`}>
+                  {isCompleted && <span className="text-[#000000] text-[16px] font-black">✓</span>}
+                  {isActive && <span className="h-3 w-3 bg-[#FFFFFF] rounded-full animate-pulse" />}
+                </div>
+                <span className={`text-[14px] font-bold uppercase tracking-widest ${isCompleted ? "text-[#888888] line-through" : "text-[#FFFFFF]"}`}>
+                  {step.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    );
+  }
+
+  const isReady = Boolean(previewUrl && garment);
+
+  // ================= MAIN PAGE =================
+  return (
+    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] overflow-hidden">
+      
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-6 shrink-0 border-b border-[#222222] z-10 bg-[#000000]">
+        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">
+          ← Back
+        </Link>
+        <span className="text-[14px] font-black uppercase tracking-tighter">Virtual Studio</span>
+        <div className="w-10"></div>
+      </header>
+
+      <div className="flex-1 flex flex-col px-6 py-6 overflow-y-auto">
+        <h1 className="text-[32px] font-black leading-[1.05] tracking-tighter mb-4">
+          Preview your <br />garments.
+        </h1>
+        
+        {/* Canvas Area */}
+        <div
+          onPointerDown={(e) => { 
+            if (!previewUrl) return; 
+            e.currentTarget.setPointerCapture(e.pointerId); 
+            dragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y }; 
+          }}
+          onPointerMove={(e) => { if (!dragRef.current) return; setOffset({ x: dragRef.current.ox + (e.clientX - dragRef.current.x), y: dragRef.current.oy + (e.clientY - dragRef.current.y) }); }}
+          onPointerUp={() => { dragRef.current = null; }}
+          className="relative aspect-[3/4] w-full overflow-hidden rounded-[2rem] border-2 border-[#222222] bg-[#111111] touch-none mb-6 shrink-0 flex items-center justify-center"
+        >
+          {previewUrl ? (
+            <>
+              <img
+                src={previewUrl} alt="Portrait" draggable={false}
+                className="absolute left-1/2 top-1/2 max-h-none origin-center object-cover w-full h-full"
+                style={{ transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px)) scale(${zoom})` }}
+              />
+              {garment && (
+                <div aria-hidden className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-40 transition-colors" style={{ backgroundColor: garment.swatch }} />
+              )}
+            </>
+          ) : (
+            <label className="absolute inset-0 z-50 flex cursor-pointer flex-col items-center justify-center bg-[#111111]">
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="absolute inset-0 h-full w-full opacity-0 cursor-pointer" onChange={(e) => onPickSelfie(e.target.files?.[0] ?? null)} />
+              <span className="text-[14px] font-bold uppercase tracking-widest text-[#555555] mb-2">Tap to upload portrait</span>
+            </label>
+          )}
+        </div>
+
+        {/* Controls */}
+        {previewUrl && (
+          <div className="flex items-center gap-4 mb-6">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">Zoom</span>
+            <input type="range" min={1} max={2.2} step={0.01} value={zoom} onChange={(e) => setZoom(Number(e.target.value))} className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-[#222222] accent-[#FFFFFF]" />
+          </div>
+        )}
+
+        {/* Garment Carousel */}
+        <div className="mb-8">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#888888] mb-3">Select Garment</p>
+          <div className="flex gap-3 overflow-x-auto pb-4 snap-x">
+            {GARMENTS.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setGarment(g)}
+                className={`snap-start shrink-0 w-36 p-3 rounded-2xl border text-left transition-all ${
+                  garment?.id === g.id 
+                    ? "border-[#FFFFFF] bg-[#222222] ring-2 ring-[#FFFFFF] ring-offset-2 ring-offset-[#000000]" 
+                    : "border-[#222222] bg-[#111111] opacity-70 hover:opacity-100"
+                }`}
+              >
+                <div className="h-16 w-full rounded-lg mb-3" style={{ background: `linear-gradient(145deg, ${g.swatch} 0%, ${g.swatch}dd 55%, #0d0d0f 140%)` }} />
+                <p className="text-[12px] font-bold text-[#FFFFFF] leading-tight mb-1 truncate">{g.name}</p>
+                <p className="text-[10px] text-[#888888] uppercase tracking-wider">{g.brand}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && <p className="text-[12px] text-red-500 font-medium text-center mb-4">{error}</p>}
+      </div>
+
+      {/* Bottom Action Area */}
+      <div className="px-6 pb-8 pt-4 shrink-0 bg-gradient-to-t from-black via-black to-transparent z-10">
+        {phase === "result" ? (
+          <div className="flex flex-col gap-3">
+            <div className="bg-[#111111] border border-[#222222] rounded-2xl p-4 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-[#00FF66] mb-1">Preview Mode</p>
+              <p className="text-[12px] text-[#888888] leading-relaxed">{result?.message}</p>
+            </div>
+            <button
+              onClick={() => { setPhase("ready"); setResult(null); }}
+              className="w-full flex items-center justify-center bg-[#111111] border border-[#222222] text-[#FFFFFF] h-[64px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[14px]"
+            >
+              Scan Another
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={generate}
+            disabled={!isReady}
+            className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[72px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[16px] disabled:opacity-50"
+          >
+            {!previewUrl ? "Upload Portrait" : !garment ? "Select Garment" : "Simulate Studio"}
+          </button>
+        )}
+      </div>
+
+    </main>
+  );
+}
+
+===== src/app/dashboard/try-on/try-on.module.css =====
+.page {
+  --surface: #1d1d22;
+  --raised: #24242a;
+  --line: #33333b;
+  --muted: #a1a1aa;
+  --soft: #d4d4d8;
+  min-height: 100svh;
+  padding: 0 24px 60px;
+  background: #121214;
+  color: #f4f4f5;
+}
+
+.header {
+  display: flex;
+  width: min(1120px, 100%);
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #fafafa;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.brandMark {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid #44444d;
+  border-radius: 9px;
+  color: white;
+  font-size: 11px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  transition: color 150ms ease;
+}
+
+.backLink:hover { color: white; }
+.backLink span { font-size: 15px; }
+
+.content { width: min(1120px, 100%); margin: 0 auto; padding-top: 40px; }
+
+.intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 19px;
+}
+
+.eyebrow {
+  margin: 0 0 9px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.intro h1 {
+  margin: 0;
+  color: #fafafa;
+  font-size: clamp(30px, 5vw, 46px);
+  font-weight: 650;
+  letter-spacing: -0.065em;
+  line-height: 1.08;
+}
+
+.description { margin: 11px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+.allocation {
+  display: flex;
+  min-width: 250px;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 15px;
+  border: 1px solid #494034;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #29251f, #1d1d22 74%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 7%), 0 8px 22px rgb(0 0 0 / 23%);
+}
+
+.allocationIcon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #5b4b34;
+  border-radius: 10px;
+  color: #f5bb68;
+  font-size: 15px;
+}
+
+.allocation strong,
+.allocation small { display: block; }
+.allocation strong { color: #f4f4f5; font-size: 10px; }
+.allocation small { margin-top: 4px; color: #c4b8a5; font-size: 9px; }
+
+.demoNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border: 1px solid #39343f;
+  border-radius: 12px;
+  background: #1b1a20;
+  color: #c4bdce;
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+.demoNotice > span {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #746583;
+  border-radius: 50%;
+  color: #d8ccff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.studioGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.panel,
+.statusCard,
+.resultCard {
+  border: 1px solid #383840;
+  border-radius: 17px;
+  background: linear-gradient(150deg, #25252c 0%, #1d1d22 56%, #19191e 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 7%),
+    0 15px 32px rgb(0 0 0 / 30%),
+    0 3px 8px rgb(0 0 0 / 22%);
+}
+
+.panel { padding: clamp(16px, 2.5vw, 23px); }
+
+.panelHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 17px;
+}
+
+.step {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #4a4a54;
+  border-radius: 9px;
+  color: #d4d4d8;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.panelHeading h2 { margin: 1px 0 0; color: #fafafa; font-size: 14px; font-weight: 620; }
+.panelHeading p { margin: 5px 0 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+
+.portraitZone {
+  position: relative;
+  display: grid;
+  min-height: 376px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed #555560;
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 50% 37%, rgb(167 139 250 / 12%), transparent 48%),
+    #18181d;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.portraitZone:hover { border-color: #9c8ac2; }
+.portraitSelected { border-style: solid; border-color: #555560; background: #151519; }
+.portraitImage { display: block; width: 100%; height: 376px; object-fit: cover; }
+
+.portraitPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.portraitIcon {
+  display: grid;
+  width: 45px;
+  height: 45px;
+  place-items: center;
+  margin-bottom: 5px;
+  border: 1px solid #45454f;
+  border-radius: 50%;
+  color: #e4e4e7;
+  font-size: 20px;
+}
+
+.portraitPrompt strong { color: #f4f4f5; font-size: 11px; }
+.portraitPrompt > span:not(.portraitIcon) { color: var(--muted); font-size: 9px; }
+.portraitPrompt small { margin-top: 8px; color: #777780; font-size: 8px; }
+
+.fileInput { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+
+.changePortrait {
+  position: absolute;
+  z-index: 1;
+  right: 11px;
+  bottom: 11px;
+  padding: 8px 11px;
+  border: 1px solid rgb(255 255 255 / 13%);
+  border-radius: 999px;
+  background: rgb(18 18 20 / 78%);
+  color: white;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.fileName { overflow: hidden; margin: 9px 0 0; color: var(--soft); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.privacyNote { margin: 12px 0 0; color: var(--muted); font-size: 8px; line-height: 1.6; }
+.errorMessage { margin: 10px 0 0; color: #fda4af; font-size: 9px; line-height: 1.5; }
+
+.garmentGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+.garmentCard {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #393941;
+  border-radius: 13px;
+  background: #202026;
+  color: #f4f4f5;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%), 0 7px 15px rgb(0 0 0 / 20%);
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.garmentCard:hover {
+  border-color: #666672;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%), 0 12px 20px rgb(0 0 0 / 27%);
+  transform: translateY(-2px);
+}
+
+.garmentSelected { border-color: #d4d4d8; box-shadow: 0 0 0 1px #d4d4d8, 0 9px 21px rgb(0 0 0 / 30%); }
+.garmentSelected:hover { border-color: #f4f4f5; }
+
+.garmentArt {
+  position: relative;
+  display: grid;
+  min-height: 118px;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 28%, rgb(255 255 255 / 11%), transparent 36%),
+    linear-gradient(145deg, color-mix(in srgb, var(--garment-color) 36%, #33333b), #202026 75%);
+}
+
+.garmentShape {
+  width: 54px;
+  height: 82px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 10px 10px 7px 7px;
+  background:
+    linear-gradient(90deg, rgb(255 255 255 / 10%), transparent 45%, rgb(0 0 0 / 18%) 51%, transparent 58%),
+    linear-gradient(145deg, color-mix(in srgb, var(--garment-color) 84%, white), var(--garment-color) 66%, color-mix(in srgb, var(--garment-color) 76%, black));
+  box-shadow: 0 10px 20px rgb(0 0 0 / 29%), inset 0 1px 0 rgb(255 255 255 / 18%);
+  clip-path: polygon(20% 0, 39% 7%, 50% 14%, 61% 7%, 80% 0, 100% 17%, 84% 31%, 77% 23%, 82% 100%, 18% 100%, 23% 23%, 16% 31%, 0 17%);
+}
+
+.designNumber {
+  position: absolute;
+  top: 9px;
+  left: 10px;
+  color: rgb(255 255 255 / 54%);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.selectedCheck {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 19px;
+  height: 19px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4f4f5;
+  color: #121214;
+  font-size: 11px;
+}
+
+.garmentInfo { display: block; min-height: 65px; padding: 10px 10px 11px; }
+.garmentInfo small { display: block; margin-bottom: 5px; color: #a1a1aa; font-size: 7px; font-weight: 700; letter-spacing: 0.09em; }
+.garmentInfo strong { display: block; color: #f4f4f5; font-size: 9px; font-weight: 600; line-height: 1.45; }
+
+.generateButton {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  margin-top: 14px;
+  padding: 0 14px;
+  border: 1px solid #f4f4f5;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #121214;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.generateButton:hover:not(:disabled) { background: white; transform: translateY(-1px); }
+.generateButton:disabled { cursor: not-allowed; opacity: 0.45; }
+.generateButton span { font-size: 14px; }
+
+.statusCard {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.statusSpinner {
+  width: 25px;
+  height: 25px;
+  border: 2px solid #555560;
+  border-top-color: #f4f4f5;
+  border-radius: 50%;
+  animation: spin 850ms linear infinite;
+}
+
+.statusCopy strong,
+.statusCopy span { display: block; }
+.statusCopy strong { color: #f4f4f5; font-size: 10px; }
+.statusCopy span { margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.progressTrack { grid-column: 1 / -1; height: 4px; overflow: hidden; border-radius: 999px; background: #393940; }
+.progressTrack > span { display: block; height: 100%; border-radius: inherit; background: #d4d4d8; transition: width 250ms ease; }
+
+.resultCard { display: grid; grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1fr); gap: 20px; margin-top: 16px; padding: 16px; }
+.resultImageWrap { position: relative; min-height: 210px; overflow: hidden; border-radius: 12px; background: #202026; }
+.resultImage { display: block; width: 100%; height: 100%; min-height: 210px; object-fit: cover; }
+.previewBadge { position: absolute; right: 9px; bottom: 9px; padding: 7px 9px; border: 1px solid rgb(255 255 255 / 15%); border-radius: 999px; background: rgb(18 18 20 / 82%); color: white; font-size: 7px; font-weight: 700; letter-spacing: 0.09em; }
+.resultCopy { align-self: center; }
+.resultCopy h2 { margin: 0; color: #fafafa; font-size: 19px; letter-spacing: -0.04em; }
+.resultCopy > p:last-child { margin: 9px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 25px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 760px) {
+  .page { padding: 0 18px 42px; }
+  .header { min-height: 65px; }
+  .content { padding-top: 31px; }
+  .intro { align-items: flex-start; flex-direction: column; gap: 15px; }
+  .allocation { width: 100%; }
+  .studioGrid { grid-template-columns: 1fr; }
+  .portraitZone, .portraitImage { min-height: 340px; height: 340px; }
+}
+
+@media (max-width: 420px) {
+  .page { padding-right: 13px; padding-left: 13px; }
+  .panel { padding: 14px; }
+  .portraitZone, .portraitImage { min-height: 290px; height: 290px; }
+  .garmentGrid { gap: 8px; }
+  .garmentArt { min-height: 105px; }
+  .garmentInfo { padding: 9px 8px; }
+  .garmentInfo strong { font-size: 8px; }
+  .resultCard { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusSpinner { animation-duration: 2s; }
+  .garmentCard, .generateButton, .backLink { transition: none; }
+}
+
+===== src/app/globals.css =====
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #000000;
+  color: #FFFFFF;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  text-decoration: none !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+===== src/app/icon.svg =====
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="20" fill="#000000"/>
+  <text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, sans-serif" font-weight="900" font-size="50" fill="#FFFFFF">S</text>
+</svg>
+
+===== src/app/layout.tsx =====
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+export const metadata: Metadata = {
+  title: "Style AI",
+  description: "Your personal AI stylist.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Style AI",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="bg-[#000000]">
+      <body className={`${inter.className} antialiased bg-[#000000] text-[#FFFFFF] flex justify-center`}>
+        {/* Mobile App Container */}
+        <div className="w-full max-w-md bg-[#000000] min-h-screen relative shadow-2xl border-x border-[#222222]">
+          {children}
+        </div>
+      </body>
+    </html>
+  );
+}
+
+===== src/app/login/page.tsx =====
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const supabase = createClient();
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setSuccessMessage("Check your email for the confirmation link.");
+        setIsLogin(true);
+      }
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="flex flex-col h-screen bg-[#000000] text-[#FFFFFF] overflow-hidden">
+      
+      {/* Header */}
+      <header className="flex justify-between items-center px-6 py-8 shrink-0">
+        <Link href="/" className="text-[11px] font-bold uppercase tracking-widest text-[#888888]">
+          ← Back
+        </Link>
+        <span className="text-[11px] font-bold uppercase tracking-widest text-[#555555]">
+          {isLogin ? "Welcome Back" : "Create Account"}
+        </span>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col justify-center px-6 pb-12 w-full max-w-md mx-auto">
+        
+        <div className="mb-10 text-center">
+          <h1 className="text-[52px] font-black leading-[1.0] tracking-tighter mb-3">
+            {isLogin ? "Sign in." : "Join the beta."}
+          </h1>
+          <p className="text-[14px] text-[#888888] leading-relaxed max-w-[260px] mx-auto">
+            {isLogin
+              ? "Access your digital wardrobe and daily style intelligence."
+              : "Start building your cloud-synced closet today."}
+          </p>
+        </div>
+
+        <form onSubmit={handleAuth} className="flex flex-col gap-5 w-full">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#555555] mb-2 block ml-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="w-full bg-[#111111] border border-[#222222] text-[#FFFFFF] text-[15px] px-5 py-4 rounded-2xl focus:outline-none focus:border-[#FFFFFF] transition-colors placeholder:text-[#444444]"
+            />
+          </div>
+          
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-widest text-[#555555] mb-2 block ml-1">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              className="w-full bg-[#111111] border border-[#222222] text-[#FFFFFF] text-[15px] px-5 py-4 rounded-2xl focus:outline-none focus:border-[#FFFFFF] transition-colors placeholder:text-[#444444]"
+            />
+          </div>
+
+          {errorMessage && <p className="text-[12px] text-red-500 font-medium text-center" role="alert">{errorMessage}</p>}
+          {successMessage && <p className="text-[12px] text-[#00FF66] font-medium text-center" role="status">{successMessage}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[68px] rounded-full active:scale-[0.96] transition-transform font-black uppercase tracking-widest text-[15px] disabled:opacity-50 mt-2"
+          >
+            {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={() => { setIsLogin(!isLogin); setErrorMessage(null); setSuccessMessage(null); }}
+            className="text-[13px] font-medium text-[#888888] hover:text-[#FFFFFF] transition-colors"
+          >
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+===== src/app/page.tsx =====
+import Link from "next/link";
+import { WaitlistForm } from "@/components/waitlist-form";
+
+export default function LandingPage() {
+  return (
+    <main className="relative flex flex-col h-[100dvh] bg-[#000000] text-[#FFFFFF] overflow-hidden selection:bg-[#FFFFFF] selection:text-[#000000]">
+      <header className="flex justify-between items-center px-6 py-6 shrink-0 z-10">
+        <span className="text-[22px] font-black tracking-tighter">STYLE.AI</span>
+        <Link href="/dashboard" className="text-[11px] font-bold uppercase tracking-widest text-[#888888] hover:text-[#FFFFFF] transition-colors p-2 -mr-2">
+          Dashboard
+        </Link>
+      </header>
+
+      <div className="flex-1 flex flex-col px-6 pt-4 pb-4 overflow-y-auto z-10">
+        <h1 className="text-[50px] font-black leading-[0.95] tracking-tighter mb-4 mt-4">
+          Your <br /> personal <br /> AI stylist.
+        </h1>
+        <p className="text-[15px] text-[#888888] font-medium max-w-[280px] leading-relaxed mb-10">
+          Snap a photo to instantly analyze your outfit&apos;s harmony, silhouette, and color profile.
+        </p>
+
+        <div className="flex flex-col gap-3 mb-auto">
+          <Link href="/analyze/color" className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6 flex items-center justify-between active:scale-[0.98] transition-transform">
+            <p className="text-[17px] font-bold text-[#FFFFFF]">Color Profile</p>
+            <div className="flex gap-1.5">
+              <div className="w-6 h-6 rounded-full bg-[#8B4513]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#556B2F]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#D2691E]"></div>
+              <div className="w-6 h-6 rounded-full bg-[#2F4F4F]"></div>
+            </div>
+          </Link>
+
+          <Link href="/analyze/outfit" className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6 block active:scale-[0.98] transition-transform">
+            <div className="flex justify-between items-end mb-4">
+              <p className="text-[17px] font-bold text-[#FFFFFF]">Outfit Harmony</p>
+              <span className="text-[32px] font-black text-[#00FF66] leading-none tracking-tighter">92<span className="text-[16px] text-[#888888]">%</span></span>
+            </div>
+            <div className="w-full h-2 bg-[#222222] rounded-full overflow-hidden">
+              <div className="h-full bg-[#00FF66] w-[92%] rounded-full"></div>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/try-on" className="bg-[#111111] border border-[#222222] rounded-[2rem] p-6 flex items-center justify-between active:scale-[0.98] transition-transform">
+            <p className="text-[17px] font-bold text-[#FFFFFF]">Virtual Studio</p>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#888888] border border-[#333333] px-3 py-1.5 rounded-full">Preview</span>
+          </Link>
+        </div>
+      </div>
+
+      <div className="px-6 pb-12 pt-4 shrink-0 z-10 bg-gradient-to-t from-black via-black to-transparent">
+        <Link href="/analyze/outfit" className="w-full flex items-center justify-center bg-[#FFFFFF] text-[#000000] h-[76px] rounded-full active:scale-[0.96] transition-transform shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+          <span className="text-[18px] font-black uppercase tracking-[0.1em]">Scan Outfit</span>
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+===== src/app/robots.ts =====
+import type { MetadataRoute } from "next";
+
+export default function robots(): MetadataRoute.Robots {
+  return { rules: { userAgent: "*", allow: "/" } };
+}
+
+===== src/components/ShareCard.tsx =====
+/* eslint-disable react-hooks/exhaustive-deps */
+"use client";  import { useEffect, useRef, useState } from "react"; import styles from "./share-card.module.css";  export type ShareCardProps = {   undertone: string;   harmonyScore: number;   dominantColors: string[]; };  const CARD_WIDTH = 1080; const CARD_HEIGHT = 1350; const WATERMARK = "Analyze your style at style-app-waitlist.vercel.app";  function toHexColor(context: CanvasRenderingContext2D, color: string): string | null {   if (!CSS.supports("color", color)) return null;    context.clearRect(0, 0, 1, 1);   context.fillStyle = color;   context.fillRect(0, 0, 1, 1);   const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;   return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`; }  function drawShareCard(   canvas: HTMLCanvasElement,   { undertone, harmonyScore, dominantColors }: ShareCardProps, ) {   const context = canvas.getContext("2d");   if (!context) throw new Error("Your browser could not prepare the style card.");    const colorCanvas = document.createElement("canvas");   colorCanvas.width = 1;   colorCanvas.height = 1;   const colorContext = colorCanvas.getContext("2d");   const colors = colorContext     ? dominantColors         .map((color) => toHexColor(colorContext, color))         .filter((color): color is string => color !== null)         .slice(0, 6)     : [];   const score = Math.max(0, Math.min(100, Math.round(harmonyScore)));    canvas.width = CARD_WIDTH;   canvas.height = CARD_HEIGHT;   context.fillStyle = "#f7f6f1";   context.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);    context.strokeStyle = "#deded5";   context.lineWidth = 2;   context.strokeRect(38, 38, CARD_WIDTH - 76, CARD_HEIGHT - 76);    context.fillStyle = "#777a72";   context.font = "700 20px Arial, sans-serif";   context.letterSpacing = "4px";   context.fillText("THE AI STYLE APP  /  PERSONAL STYLE PROFILE", 90, 115);    context.strokeStyle = "#c6513b";   context.lineWidth = 3;   context.beginPath();   context.moveTo(90, 160);   context.lineTo(150, 160);   context.stroke();    context.fillStyle = "#20231f";   context.font = "500 86px Georgia, serif";   context.letterSpacing = "0px";   context.fillText("Your style,", 90, 285);   context.fillStyle = "#c6513b";   context.font = "italic 500 86px Georgia, serif";   context.fillText("in color.", 90, 385);    context.fillStyle = "#777a72";   context.font = "700 19px Arial, sans-serif";   context.letterSpacing = "3px";   context.fillText("YOUR UNDERTONE", 90, 500);   context.fillStyle = "#20231f";   context.font = "500 52px Georgia, serif";   context.letterSpacing = "0px";   context.fillText(undertone.trim().slice(0, 32) || "Personal palette", 90, 565);    const dialX = 790;   const dialY = 500;   const dialRadius = 113;   context.beginPath();   context.arc(dialX, dialY, dialRadius, 0, Math.PI * 2);   context.strokeStyle = "#e4e1d8";   context.lineWidth = 13;   context.stroke();   context.beginPath();   context.arc(dialX, dialY, dialRadius, -Math.PI / 2, -Math.PI / 2 + (score / 100) * Math.PI * 2);   context.strokeStyle = "#c6513b";   context.lineWidth = 13;   context.lineCap = "round";   context.stroke();   context.fillStyle = "#20231f";   context.textAlign = "center";   context.font = "500 67px Georgia, serif";   context.fillText(String(score), dialX, dialY + 13);   context.fillStyle = "#777a72";   context.font = "700 15px Arial, sans-serif";   context.letterSpacing = "2px";   context.fillText("HARMONY", dialX, dialY + 49);   context.textAlign = "left";   context.lineCap = "butt";    context.strokeStyle = "#deded5";   context.lineWidth = 2;   context.beginPath();   context.moveTo(90, 700);   context.lineTo(990, 700);   context.stroke();    context.fillStyle = "#777a72";   context.font = "700 20px Arial, sans-serif";   context.letterSpacing = "4px";   context.fillText("YOUR SIGNATURE COLORS", 90, 775);    const swatchSize = 245;   const swatchGap = 31;   const swatchTop = 830;   colors.forEach((color, index) => {     const column = index % 3;     const row = Math.floor(index / 3);     const x = 90 + column * (swatchSize + swatchGap);     const y = swatchTop + row * 190;     context.fillStyle = color;     context.fillRect(x, y, swatchSize, 125);     context.strokeStyle = "#deded5";     context.lineWidth = 2;     context.strokeRect(x, y, swatchSize, 125);     context.fillStyle = "#464941";     context.font = "600 18px Arial, sans-serif";     context.letterSpacing = "2px";     context.fillText(color.toUpperCase(), x, y + 160);   });    if (colors.length === 0) {     context.fillStyle = "#777a72";     context.font = "400 24px Arial, sans-serif";     context.letterSpacing = "0px";     context.fillText("Your colors will appear here.", 90, swatchTop + 40);   }    context.strokeStyle = "#deded5";   context.beginPath();   context.moveTo(90, 1210);   context.lineTo(990, 1210);   context.stroke();   context.fillStyle = "#777a72";   context.font = "500 17px Arial, sans-serif";   context.letterSpacing = "1px";   context.fillText(WATERMARK, 90, 1260);   context.letterSpacing = "0px"; }  export default function ShareCard(props: ShareCardProps) {   const canvasRef = useRef<HTMLCanvasElement>(null);   const [isRendered, setIsRendered] = useState(false);   const [errorMessage, setErrorMessage] = useState<string | null>(null);    useEffect(() => {     const canvas = canvasRef.current;     if (!canvas) return;      try {       drawShareCard(canvas, props);       setIsRendered(true);       setErrorMessage(null);     } catch (error) {       setIsRendered(false);       setErrorMessage(         error instanceof Error ? error.message : "The style card could not be rendered.",       );     }   }, [props.dominantColors, props.harmonyScore, props.undertone]);    const downloadCard = () => {     const canvas = canvasRef.current;     if (!canvas || !isRendered) return;      canvas.toBlob((blob) => {       if (!blob) {         setErrorMessage("The style card could not be prepared for download. Please try again.");         return;       }        const url = URL.createObjectURL(blob);       const link = document.createElement("a");       link.href = url;       link.download = "my-style-card.png";       document.body.appendChild(link);       link.click();       link.remove();       window.setTimeout(() => URL.revokeObjectURL(url), 1000);     }, "image/png");   };    return (     <section className={styles.shareCard} aria-label="Download your style card">       <canvas         ref={canvasRef}         className={styles.canvas}         width={CARD_WIDTH}         height={CARD_HEIGHT}         role="img"         aria-label={`Style profile for ${props.undertone}, harmony score ${props.harmonyScore} out of 100`}       />       <button className={styles.downloadButton} type="button" onClick={downloadCard} disabled={!isRendered}>         Download Style Card <span aria-hidden="true">â†“</span>       </button>       {errorMessage && <p className={styles.errorMessage} role="alert">{errorMessage}</p>}     </section>   ); }
+
+===== src/components/share-card.module.css =====
+.shareCard {
+  width: min(100%, 520px);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid #33333b;
+  border-radius: 16px;
+  box-shadow: 0 16px 42px rgb(0 0 0 / 28%);
+}
+
+.downloadButton {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+  border: 1px solid #f4f4f5;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #121214;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease;
+}
+
+.downloadButton:hover:not(:disabled) {
+  background: #d4d4d8;
+}
+
+.downloadButton:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.downloadButton span {
+  font-size: 16px;
+}
+
+.errorMessage {
+  margin: 10px 0 0;
+  color: #fda4af;
+  font-size: 11px;
+}
+
+===== src/components/spotlight-card.tsx =====
+"use client";
+
+import { ReactNode } from "react";
+
+export function ClayCard({ children, className = "" }: { children: ReactNode, className?: string }) {
+  return (
+    <div
+      className={`
+        relative rounded-[2rem] bg-[#1C1C21] 
+        shadow-[inset_0_2px_4px_rgba(255,255,255,0.06),0_16px_32px_rgba(0,0,0,0.4)] 
+        transition-all duration-300 
+        hover:-translate-y-1 hover:shadow-[inset_0_2px_4px_rgba(255,255,255,0.08),0_20px_40px_rgba(0,0,0,0.5)]
+        ${className}
+      `}
+    >
+      <div className="p-8 h-full">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+===== src/components/tryon/GarmentGrid.tsx =====
+"use client";
+
+import { useMemo, useState } from "react";
+import { CATEGORY_LABELS, GARMENTS } from "@/lib/tryon/catalogue";
+import type { Garment } from "@/lib/tryon/types";
+
+const FILTERS = Object.keys(CATEGORY_LABELS) as Array<Garment["category"] | "all">;
+
+export default function GarmentGrid({
+  selectedId,
+  onSelect,
+  disabled,
+}: {
+  selectedId: string | null;
+  onSelect: (g: Garment) => void;
+  disabled?: boolean;
+}) {
+  const [filter, setFilter] = useState<Garment["category"] | "all">("all");
+
+  const items = useMemo(
+    () => (filter === "all" ? GARMENTS : GARMENTS.filter((g) => g.category === filter)),
+    [filter]
+  );
+
+  return (
+    <section aria-label="Garment selection" className="flex flex-col gap-4">
+      <div className="flex flex-wrap gap-2" role="tablist">
+        {FILTERS.map((key) => {
+          const active = key === filter;
+          return (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={active}
+              onClick={() => setFilter(key)}
+              className={[
+                "rounded-full px-3.5 py-1.5 text-[11px] tracking-[0.14em] uppercase transition-colors border",
+                active
+                  ? "border-[#B99A6B]/60 bg-[#B99A6B]/10 text-[#E8E6E3]"
+                  : "border-white/8 bg-white/[0.02] text-[#8B8B90] hover:border-white/15",
+              ].join(" ")}
+            >
+              {CATEGORY_LABELS[key]}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        {items.map((g) => {
+          const active = g.id === selectedId;
+          return (
+            <button
+              key={g.id}
+              onClick={() => onSelect(g)}
+              disabled={disabled}
+              aria-pressed={active}
+              className={[
+                "group relative flex flex-col gap-2 rounded-xl border p-3 text-left transition-all",
+                "disabled:cursor-not-allowed disabled:opacity-40",
+                active
+                  ? "border-[#B99A6B]/70 bg-[#B99A6B]/[0.07]"
+                  : "border-white/8 bg-white/[0.015] hover:border-white/20",
+              ].join(" ")}
+            >
+              <span
+                aria-hidden
+                className="h-12 w-full rounded-md border border-black/40"
+                style={{ background: `linear-gradient(145deg, ${g.swatch} 0%, ${g.swatch}dd 55%, #0d0d0f 140%)` }}
+              />
+              <span className="text-[12.5px] leading-tight text-[#E8E6E3]">{g.name}</span>
+              <span className="text-[10px] uppercase tracking-[0.14em] text-[#6E6E74]">
+                {g.brand} · {g.tone}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+===== src/components/tryon/LuxuryLoader.module.css =====
+.shine {
+  animation: tryon-shine 1.8s ease-in-out infinite;
+}
+
+.pulse {
+  animation: tryon-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes tryon-shine {
+  from { transform: translateX(-220%); }
+  to { transform: translateX(130%); }
+}
+
+@keyframes tryon-pulse {
+  50% { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine,
+  .pulse {
+    animation: none;
+  }
+}
+
+===== src/components/tryon/LuxuryLoader.tsx =====
+"use client";
+
+export interface LoaderStage { key: string; label: string; }
+
+export default function LuxuryLoader({ stages, progress }: { stages: LoaderStage[]; progress: number; }) {
+  const pct = Math.max(0, Math.min(100, progress));
+  const complete = pct >= 100;
+  const activeIndex = complete ? stages.length : Math.min(stages.length - 1, Math.floor((pct / 100) * stages.length));
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-[#0E0E10] p-7">
+      <style>{`
+        @keyframes lux-sheen { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+        @keyframes lux-track { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        @media (prefers-reduced-motion: reduce) { .lux-anim { animation: none !important; } }
+      `}</style>
+
+      <div className="flex items-baseline justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.28em] text-[#B99A6B]">Virtual Studio</p>
+          <h2 className="mt-1.5 text-[15px] font-medium text-[#E8E6E3]">Simulating Studio Preview</h2>
+        </div>
+        <span className="font-mono text-[13px] tabular-nums text-[#8B8B90]">{Math.round(pct).toString().padStart(2, "0")}%</span>
+      </div>
+
+      <div className="relative mt-5 h-[2px] w-full overflow-hidden rounded-full bg-white/8">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-[#8A7048] via-[#D8BE91] to-[#8A7048] bg-[length:200%_100%] transition-[width] duration-500 lux-anim"
+          style={{ width: `${pct}%`, animation: "lux-track 2.6s linear infinite" }}
+        />
+        {!complete && <span aria-hidden className="absolute inset-y-0 w-1/4 bg-gradient-to-r from-transparent via-white/40 to-transparent lux-anim" style={{ animation: "lux-sheen 1.9s ease-in-out infinite" }} />}
+      </div>
+
+      <ol className="mt-6 space-y-3">
+        {stages.map((stage, i) => {
+          const done = i < activeIndex;
+          const active = i === activeIndex;
+          return (
+            <li key={stage.key} className="flex items-center gap-3">
+              <span className={["grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border text-[9px]", done ? "border-[#B99A6B] bg-[#B99A6B] text-[#121214]" : active ? "border-[#B99A6B]/70 text-[#B99A6B]" : "border-white/12 text-transparent"].join(" ")}>
+                {done ? "✓" : active ? "•" : "·"}
+              </span>
+              <span className={["text-[12.5px] transition-colors", done ? "text-[#6E6E74] line-through" : active ? "text-[#E8E6E3]" : "text-[#55555A]"].join(" ")}>
+                {stage.label}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <p className="mt-6 text-[10.5px] leading-relaxed text-[#55555A]">
+        Preview mode active. No generative models are invoked, and no cloud credits are consumed.
+      </p>
+    </div>
+  );
+}
+
+===== src/components/waitlist-form.tsx =====
+"use client";
+
+import { FormEvent, useState } from "react";
+
+export function WaitlistForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    setMessage("");
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Something went wrong.");
+      setStatus("success");
+      setMessage("You're on the list. We'll be in touch.");
+      setEmail("");
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Something went wrong.");
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <form
+        onSubmit={onSubmit}
+        className="relative flex items-center p-2 rounded-[1.5rem] bg-[#151518] shadow-[inset_4px_4px_10px_rgba(0,0,0,0.6),inset_-4px_-4px_10px_rgba(255,255,255,0.03)]"
+      >
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Your email address"
+          required
+          disabled={status === "loading" || status === "success"}
+          className="w-full bg-transparent px-5 py-3 text-[14px] text-[#E8E6E3] placeholder:text-[#55555A] focus:outline-none disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          disabled={status === "loading" || status === "success"}
+          className="shrink-0 rounded-[1.2rem] bg-[#B99A6B] px-6 py-3.5 text-[12px] font-semibold text-[#121214] shadow-[inset_0_2px_4px_rgba(255,255,255,0.4),0_4px_12px_rgba(185,154,107,0.3)] transition-all hover:bg-[#C4A77D] active:shadow-[inset_0_4px_8px_rgba(0,0,0,0.2)] active:translate-y-0.5 disabled:pointer-events-none disabled:opacity-50"
+        >
+          {status === "loading" ? "Joining..." : status === "success" ? "Joined" : "Get early access"}
+        </button>
+      </form>
+      {message && (
+        <p className={`mt-4 text-[12px] font-medium ${status === "error" ? "text-red-400" : "text-[#B99A6B]"}`}>
+          {message}
+        </p>
+      )}
+      {!message && (
+        <p className="mt-4 text-[11px] tracking-wide text-[#55555A]">
+          A little note when we&apos;re ready. No noise, ever.
+        </p>
+      )}
+    </div>
+  );
+}
+
+===== src/lib/colorMath.ts =====
+export type RGB = readonly [red: number, green: number, blue: number];
+
+export type SkinColorSamples = {
+  cheeks: readonly RGB[];
+  forehead: readonly RGB[];
+};
+
+export type Undertone = "warm" | "cool" | "neutral" | "olive";
+
+export type UndertoneAnalysis = {
+  undertone: Undertone;
+  averageRgb: RGB;
+  lab: { lightness: number; a: number; b: number };
+  hueAngle: number;
+};
+
+function averageRgb(samples: readonly RGB[]): RGB {
+  if (samples.length === 0) {
+    throw new RangeError("At least one skin color sample is required.");
+  }
+
+  const total = samples.reduce(
+    ([red, green, blue], sample) => {
+      for (const channel of sample) {
+        if (!Number.isFinite(channel) || channel < 0 || channel > 255) {
+          throw new RangeError("RGB channels must be finite values from 0 to 255.");
+        }
+      }
+
+      return [red + sample[0], green + sample[1], blue + sample[2]];
+    },
+    [0, 0, 0],
+  );
+
+  return [
+    total[0] / samples.length,
+    total[1] / samples.length,
+    total[2] / samples.length,
+  ];
+}
+
+function srgbToLinear(channel: number): number {
+  const value = channel / 255;
+  return value <= 0.04045
+    ? value / 12.92
+    : ((value + 0.055) / 1.055) ** 2.4;
+}
+
+function rgbToLab([red, green, blue]: RGB): UndertoneAnalysis["lab"] {
+  const linearRed = srgbToLinear(red);
+  const linearGreen = srgbToLinear(green);
+  const linearBlue = srgbToLinear(blue);
+
+  const x = (linearRed * 0.4124564 + linearGreen * 0.3575761 + linearBlue * 0.1804375) / 0.95047;
+  const y = linearRed * 0.2126729 + linearGreen * 0.7151522 + linearBlue * 0.072175;
+  const z = (linearRed * 0.0193339 + linearGreen * 0.119192 + linearBlue * 0.9503041) / 1.08883;
+
+  const pivot = (value: number) =>
+    value > 0.008856451679
+      ? Math.cbrt(value)
+      : value / 0.1284185493 + 0.1379310345;
+  const xPivot = pivot(x);
+  const yPivot = pivot(y);
+  const zPivot = pivot(z);
+
+  return {
+    lightness: 116 * yPivot - 16,
+    a: 500 * (xPivot - yPivot),
+    b: 200 * (yPivot - zPivot),
+  };
+}
+
+function classifyUndertone(hueAngle: number, chroma: number): Undertone {
+  if (chroma < 8) return "neutral";
+  if (hueAngle >= 75 && hueAngle <= 115) return "olive";
+  if (hueAngle >= 50 && hueAngle < 75) return "warm";
+  if (hueAngle < 50 || hueAngle > 340) return "cool";
+  return "neutral";
+}
+
+export function analyzeUndertone(samples: SkinColorSamples): UndertoneAnalysis {
+  const average = averageRgb([...samples.cheeks, ...samples.forehead]);
+  const lab = rgbToLab(average);
+  const hueAngle = (Math.atan2(lab.b, lab.a) * 180 / Math.PI + 360) % 360;
+  const chroma = Math.hypot(lab.a, lab.b);
+  const undertone = classifyUndertone(hueAngle, chroma);
+  const analysis = { undertone, averageRgb: average, lab, hueAngle };
+
+  console.log("Estimated skin undertone:", undertone, analysis);
+  return analysis;
+}
+
+===== src/lib/supabase.ts =====
+import { createClient } from "@supabase/supabase-js";
+
+export function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
+  const supabaseKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY environment variable.",
+    );
+  }
+
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+===== src/lib/supabase/client.ts =====
+import { createBrowserClient } from "@supabase/ssr";
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
+
+===== src/lib/supabase/server.ts =====
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  );
+}
+
+===== src/lib/tryon/catalogue.ts =====
+import type { Garment } from "./types";
+
+export const GARMENTS: Garment[] = [
+  { id: "g-001", name: "Structured Wool Blazer", brand: "Atelier 12", category: "blazer", tone: "cool", occasion: ["Boardroom"], swatch: "#2E3A46" },
+  { id: "g-002", name: "Ivory Silk Shirt", brand: "Maison Nord", category: "shirt", tone: "warm", occasion: ["Interview"], swatch: "#EDE6D8" },
+  { id: "g-003", name: "Charcoal Tailored Trouser", brand: "Atelier 12", category: "trouser", tone: "neutral", occasion: ["Boardroom"], swatch: "#3A3A3C" },
+  { id: "g-004", name: "Camel Wool Overcoat", brand: "Verdant", category: "outerwear", tone: "warm", occasion: ["Commute"], swatch: "#B08A5E" },
+  { id: "g-005", name: "Navy Midi Sheath Dress", brand: "Lumen Studio", category: "dress", tone: "cool", occasion: ["Keynote"], swatch: "#1F2A44" },
+  { id: "g-006", name: "Merino Fine Knit", brand: "Maison Nord", category: "knitwear", tone: "neutral", occasion: ["Office"], swatch: "#8A8D91" },
+  { id: "g-007", name: "Slate Poplin Shirt", brand: "Lumen Studio", category: "shirt", tone: "cool", occasion: ["Office"], swatch: "#5B6B7A" },
+  { id: "g-008", name: "Black Tuxedo Blazer", brand: "Atelier 12", category: "blazer", tone: "neutral", occasion: ["Gala"], swatch: "#141416" },
+];
+
+export const CATEGORY_LABELS: Record<Garment["category"] | "all", string> = {
+  all: "All", blazer: "Blazers", shirt: "Shirts", trouser: "Trousers", 
+  dress: "Dresses", knitwear: "Knitwear", outerwear: "Outerwear",
+};
+
+===== src/lib/tryon/types.ts =====
+export type GarmentCategory = "blazer" | "shirt" | "trouser" | "dress" | "knitwear" | "outerwear";
+export type Tone = "warm" | "cool" | "neutral";
+export interface Garment { id: string; name: string; brand: string; category: GarmentCategory; tone: Tone; occasion: string[]; swatch: string; }
+export type TryOnPhase = "idle" | "ready" | "generating" | "result" | "error";
+export interface TryOnResult { status: "rendered" | "preview_only" | "error"; provider: "fal" | "replicate" | null; garmentId: string; renderUrl: string | null; message: string; }
+
+===== src/middleware.ts =====
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // IMPORTANT: Avoid writing any logic between createServerClient and
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
+  await supabase.auth.getUser();
+
+  return supabaseResponse;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * Feel free to modify this to fit your needs.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+};
+
+===== supabase/migrations/20261101_init_schema.sql =====
+begin;
+
+create table if not exists public.waitlist (
+  id bigint generated by default as identity primary key,
+  email text not null unique,
+  created_at timestamptz not null default now()
+);
+
+alter table public.waitlist
+  alter column email set not null,
+  alter column created_at set default now(),
+  alter column created_at set not null;
+
+alter table public.waitlist
+  drop constraint if exists waitlist_email_check;
+
+alter table public.waitlist
+  drop constraint if exists waitlist_email_length_check;
+
+alter table public.waitlist
+  add constraint waitlist_email_length_check
+  check (char_length(email) <= 254);
+
+alter table public.waitlist enable row level security;
+
+do $$
+declare
+  existing_policy record;
+begin
+  for existing_policy in
+    select policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'waitlist'
+  loop
+    execute format(
+      'drop policy %I on public.waitlist',
+      existing_policy.policyname
+    );
+  end loop;
+end
+$$;
+
+revoke all on table public.waitlist from anon, authenticated;
+grant insert on table public.waitlist to anon;
+
+create policy "Allow public waitlist signups"
+on public.waitlist
+for insert
+to anon
+with check (char_length(email) <= 254);
+
+commit;
+
+===== supabase/schema.sql =====
+create table if not exists public.waitlist (
+  id bigint generated by default as identity primary key,
+  email text not null unique check (char_length(email) <= 254),
+  created_at timestamptz not null default now()
+);
+
+alter table public.waitlist enable row level security;
+
+revoke all on table public.waitlist from anon, authenticated;
+grant insert on table public.waitlist to anon;
+
+do $$
+declare
+  existing_policy record;
+begin
+  for existing_policy in
+    select policyname
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'waitlist'
+  loop
+    execute format(
+      'drop policy %I on public.waitlist',
+      existing_policy.policyname
+    );
+  end loop;
+end
+$$;
+
+create policy "Allow public waitlist signups"
+on public.waitlist
+for insert
+to anon
+with check (char_length(email) <= 254);

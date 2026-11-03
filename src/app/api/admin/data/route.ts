@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 
@@ -6,7 +6,7 @@ export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user || user.email !== process.env.ADMIN_EMAIL) {
+  if (!user || !process.env.ADMIN_EMAIL || !user.email_confirmed_at || user.email?.toLowerCase() !== process.env.ADMIN_EMAIL.trim().toLowerCase()) {
     return NextResponse.json({ 
       error: "Unauthorized", 
       userEmail: user?.email || "Not logged in" 

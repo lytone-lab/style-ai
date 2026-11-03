@@ -25,3 +25,19 @@ a {
 .animate-slide-up {
   animation: slide-up 0.5s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}

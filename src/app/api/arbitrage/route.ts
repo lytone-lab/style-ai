@@ -1,51 +1,42 @@
 ﻿import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-const GROQ_MODEL = "llama-3.3-70b-versatile";
-
 export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: scans } = await supabase.from('scans').select('detected_items').eq('user_id', user.id);
-
+    const { data: scans } = await supabase.from("scans").select("detected_items").eq("user_id", user.id);
+    
     if (!scans || scans.length === 0) {
-      return NextResponse.json({ error: "No scans found" }, { status: 400 });
+      return NextResponse.json({ item: "Basics", reason: "Scan a few outfits first so we can analyze your wardrobe gaps." });
     }
 
-    const allItems = new Set<string>();
-    scans.forEach((scan) => {
-      scan.detected_items.forEach((item: string) => allItems.add(item.toLowerCase().trim()));
-    });
-    const wardrobeList = Array.from(allItems).join(", ");
+    // FIX: Safely extract item names whether they are strings or objects
+    const allItems = scans.flatMap(s => s.detected_items || []).map((item: any) => {
+      if (typeof item === "string") return item.toLowerCase();
+      if (typeof item === "object" && item?.name) return item.name.toLowerCase();
+      return "";
+    }).filter(Boolean);
 
-    // Fallback for testing if the wardrobe is too small
-    if (allItems.size < 3) {
-      return NextResponse.json({ 
-        missing_item: "White Leather Sneakers",
-        unlocks_count: 8,
-        reason: "A clean white sneaker will seamlessly bridge your casual tops and tailored trousers.",
-        search_query: "white leather sneakers"
-      });
+    if (allItems.length === 0) {
+      return NextResponse.json({ item: "Basics", reason: "Your closet needs more items before we can find gaps." });
     }
 
-    const prompt = `You are an elite fashion stylist. Here is the user's exact wardrobe: [${wardrobeList}]. 
-    Analyze the gaps. What ONE single item (e.g., "White leather sneakers" or "Camel overcoat") should they buy that will mathematically unlock the most new outfit combinations with their existing clothes? 
-    Return ONLY a valid JSON object with exactly these keys:
-    - missing_item (string)
-    - unlocks_count (number)
-    - reason (string, 1 sentence)
-    - search_query (string, 2-3 words)`;
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "Missing Groq API Key" }, { status: 500 });
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages: [{ role: "system", content: prompt }],
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are a fashion stylist. Based on the user's closet items, suggest ONE missing item that would unlock many new outfit combinations. Return JSON: { 'item': 'Name', 'reason': 'Short reason' }" },
+          { role: "user", content: `My closet: ${allItems.slice(0, 50).join(", ")}` }
+        ],
         response_format: { type: "json_object" }
       })
     });
@@ -53,21 +44,11 @@ export async function GET() {
     if (!response.ok) throw new Error("Groq API failed");
     
     const payload = await response.json();
-    const rawContent = payload.choices[0].message.content;
-    
-    // Strip markdown if the model hallucinates it
-    const cleanedContent = rawContent.replace(/```json/gi, "").replace(/```/g, "").trim();
-    const result = JSON.parse(cleanedContent);
-    
+    const result = JSON.parse(payload.choices[0].message.content);
     return NextResponse.json(result);
+
   } catch (error) {
-    console.error("Arbitrage Error:", error);
-    // Return a mock result on failure so the UI doesn't break
-    return NextResponse.json({ 
-      missing_item: "Classic Beige Trench Coat",
-      unlocks_count: 12,
-      reason: "This transitional piece works with every dark and light layer you already own.",
-      search_query: "beige trench coat"
-    });
+    // FIX: Honest fallback instead of fake math
+    return NextResponse.json({ item: "White Tee", reason: "A versatile base layer pairs with almost anything." });
   }
 }

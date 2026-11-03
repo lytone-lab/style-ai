@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -17,15 +18,7 @@ const RESPONSE_SCHEMA = {
     vibe: { type: "STRING" },
     style_archetype: { type: "STRING" }
   },
-  required: [
-    "detected_items",
-    "dominant_colors",
-    "harmony_score",
-    "occasion_fit",
-    "three_fixes",
-    "vibe",
-    "style_archetype"
-  ],
+  required: ["detected_items", "dominant_colors", "harmony_score", "occasion_fit", "three_fixes", "vibe", "style_archetype"],
 };
 
 const SYSTEM_PROMPT = `You are a high-end personal stylist and fashion director. Analyze the clothing items, styling harmony, and overall aesthetic visible in the image.
@@ -62,20 +55,14 @@ async function readBoundedBody(request: Request): Promise<ArrayBuffer | null> {
     const { done, value } = await reader.read();
     if (done) break;
     totalBytes += value.byteLength;
-    if (totalBytes > MAX_REQUEST_BYTES) {
-      await reader.cancel();
-      return null;
-    }
+    if (totalBytes > MAX_REQUEST_BYTES) { await reader.cancel(); return null; }
     chunks.push(value);
   }
 
   const body = new ArrayBuffer(totalBytes);
   const bodyBytes = new Uint8Array(body);
   let offset = 0;
-  for (const chunk of chunks) {
-    bodyBytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
+  for (const chunk of chunks) { bodyBytes.set(chunk, offset); offset += chunk.byteLength; }
   return body;
 }
 
@@ -94,27 +81,21 @@ function isOutfitCheckResult(value: unknown): value is OutfitCheckResult {
   if (typeof value !== "object" || value === null) return false;
   const result = value as Record<string, unknown>;
   if (
-    !isStringArray(result.detected_items) ||
-    !isStringArray(result.dominant_colors) ||
-    typeof result.harmony_score !== "number" ||
-    !Number.isFinite(result.harmony_score) ||
-    result.harmony_score < 0 ||
-    result.harmony_score > 100 ||
-    typeof result.occasion_fit !== "string" ||
-    !result.occasion_fit.trim() ||
-    !isStringArray(result.three_fixes) ||
-    result.three_fixes.length !== 3 ||
-    typeof result.vibe !== "string" ||
-    !result.vibe.trim() ||
-    typeof result.style_archetype !== "string" ||
-    !result.style_archetype.trim()
-  ) {
-    return false;
-  }
+    !isStringArray(result.detected_items) || !isStringArray(result.dominant_colors) ||
+    typeof result.harmony_score !== "number" || !Number.isFinite(result.harmony_score) || result.harmony_score < 0 || result.harmony_score > 100 ||
+    typeof result.occasion_fit !== "string" || !result.occasion_fit.trim() ||
+    !isStringArray(result.three_fixes) || result.three_fixes.length !== 3 ||
+    typeof result.vibe !== "string" || !result.vibe.trim() ||
+    typeof result.style_archetype !== "string" || !result.style_archetype.trim()
+  ) return false;
   return new Set(result.three_fixes.map((fix) => fix.trim().toLocaleLowerCase())).size === 3;
 }
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized. Please log in." }, { status: 401 });
+
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("multipart/form-data")) {
     return NextResponse.json({ error: "Upload an image using multipart/form-data." }, { status: 415 });
   }
@@ -124,15 +105,8 @@ export async function POST(request: Request) {
 
   let formData: FormData;
   try {
-    const boundedRequest = new Request(request.url, {
-      method: "POST",
-      headers: request.headers,
-      body: boundedBody,
-    });
-    formData = await boundedRequest.formData();
-  } catch {
-    return NextResponse.json({ error: "The multipart upload could not be read." }, { status: 400 });
-  }
+    formData = await new Request(request.url, { method: "POST", headers: request.headers, body: boundedBody }).formData();
+  } catch { return NextResponse.json({ error: "The multipart upload could not be read." }, { status: 400 }); }
 
   const image = formData.get("image");
   if (!(image instanceof File)) return NextResponse.json({ error: 'Include the image file in the "image" field.' }, { status: 400 });
@@ -148,56 +122,39 @@ export async function POST(request: Request) {
   const base64Image = Buffer.from(bytes).toString("base64");
   let providerResponse: Response;
   try {
-    providerResponse = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Review this outfit image and return the requested structured JSON." },
-                { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-              ],
-            },
-          ],
-        }),
-        signal: AbortSignal.timeout(30_000),
-      },
-    );
+    providerResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: [{ type: "text", text: "Review this outfit image and return the requested structured JSON." }, { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } }] },
+        ],
+        // FIX: Added max_tokens to prevent hitting the 1000 OTPM limit
+        max_tokens: 800,
+        response_format: { type: "json_object" }
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
 
     if (!providerResponse.ok) {
-      const rawGroqError = await providerResponse.text();
-      throw new Error(`HTTP ${providerResponse.status}: ${rawGroqError}`);
+      console.error("Groq Failure:", await providerResponse.text());
+      throw new Error("Groq API failed");
     }
   } catch (error) {
-    const failureDetails = error instanceof Error ? error.message : String(error);
-    console.error("Groq Failure Details:", failureDetails);
     return NextResponse.json({ error: "Outfit analysis is temporarily unavailable." }, { status: 502 });
   }
 
   let providerPayload: unknown;
   try { providerPayload = await providerResponse.json(); } catch { return NextResponse.json({ error: "Groq returned an invalid response." }, { status: 502 }); }
 
-  const responseText =
-    typeof providerPayload === "object" && providerPayload !== null && "choices" in providerPayload &&
-    Array.isArray(providerPayload.choices) && typeof providerPayload.choices[0] === "object" &&
-    providerPayload.choices[0] !== null && "message" in providerPayload.choices[0] &&
-    typeof providerPayload.choices[0].message === "object" && providerPayload.choices[0].message !== null &&
-    "content" in providerPayload.choices[0].message && typeof providerPayload.choices[0].message.content === "string"
-      ? providerPayload.choices[0].message.content : null;
-
+  const responseText = (providerPayload as any)?.choices?.[0]?.message?.content;
   if (!responseText) return NextResponse.json({ error: "Groq returned no outfit feedback." }, { status: 502 });
 
   let result: unknown;
-  try {
-    const cleanedText = responseText.replace(/```json/gi, "").replace(/```/g, "").trim();
-    result = JSON.parse(cleanedText);
-  } catch { return NextResponse.json({ error: "Groq returned invalid JSON." }, { status: 502 }); }
+  try { result = JSON.parse(responseText.replace(/```json/gi, "").replace(/```/g, "").trim()); } 
+  catch { return NextResponse.json({ error: "Groq returned invalid JSON." }, { status: 502 }); }
 
   if (!isOutfitCheckResult(result)) return NextResponse.json({ error: "Groq returned feedback in an invalid format." }, { status: 502 });
 

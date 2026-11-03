@@ -28,3 +28,51 @@ Build a billion-dollar, Cal AI-inspired mobile-first PWA for fashion. It transit
 - **System Constraints:** Execution policies might block npm. Remind the user to run `Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force` if needed.
 - **UI Rules:** NEVER use glassmorphism or soft clay shadows. Strict Cal AI / Neo-Brutalist aesthetic. 1px borders (`border-[#222222]`), stark white buttons.
 - **Errors:** If Next.js throws a TensorFlow console error, override `console.log`, `console.info`, and `console.warn` in the `detectForVideo` loop.
+
+## UI/UX Laws & Behavioral Design (STRICT RULES)
+The app must weaponize these cognitive principles to maximize conversion and retention:
+- **Hick's Law:** Minimize decisions. (e.g., Replace complex text-editing grids with a single, intuitive visual slider for cropping).
+- **Fitts's Law:** Make primary actions massive and reachable. (e.g., h-[72px] sticky bottom buttons, large touch targets).
+- **Jakob's Law:** Use familiar patterns. (e.g., Standard bottom sheets, native range sliders).
+- **Law of Proximity:** Group related elements visually. (e.g., Image, title, and CPW inside a single bordered card).
+- **Miller's Law (7±2):** Reduce cognitive load. Show max 3 items per card or use visual badges (+3 items) instead of long text lists.
+- **The IKEA Effect:** Users value what they help create. Forcing a quick manual crop makes them invest in their digital closet.
+
+## Network & Installation Workarounds (Windows)
+If `npm install` hangs indefinitely or throws `ECONNRESET` (common on this network), do not wait. 
+1. Terminate the hanging process (`Ctrl + C`).
+2. Switch to the global mirror: `npm.cmd config set registry https://registry.npmmirror.com`
+3. Run install with visible logging: `npm.cmd install --legacy-peer-deps --no-audit --no-fund --loglevel http`
+4. Once finished, reset the registry: `npm.cmd config set registry https://registry.npmjs.org` and `npm.cmd config set loglevel notice`.
+
+## SYSTEM RULES FOR AI (STRICT COMPLIANCE)
+1. **Three Variations:** For every patch, the AI MUST provide exactly 3 distinct variations (Minimal, Advanced, Premium). The user will choose one.
+2. **Skeleton Loaders:** NO SPINNERS OR LOADING TEXT. Use skeletal loading states that mimic the exact layout of the final component.
+3. **UX Law/Reference Explainers:** For every feature, the AI must explain the UI/UX laws applied and reference how top apps (Instagram, Cal AI, Vogue) solve the same problem.
+4. **Audit & Update:** We log critiques in a specific section. Once a feature is fully fixed and approved, we update the GitHub repo.
+
+## THE AUDIT LOG (CRITIQUES TO FIX)
+- [ ] **Fake Math:** Remove random cost-per-wear (CPW). Show "Wear Count" only until user inputs price.
+- [ ] **Arbitrage Crash:** `api/arbitrage` crashes because it parses objects as strings. Fix parsing and remove fake fallback text.
+- [ ] **Security:** `/api/outfit-check` needs an auth guard. Database queries need `.eq("user_id", user.id)`.
+- [ ] **Contrast:** Text on black must be `#888888` or brighter (remove all `#555`/`#444` for accessibility).
+- [ ] **Skeleton Loaders:** Replace all textual "Loading..." states with visual skeletons.
+- [ ] **Legal:** Add Privacy Policy, Terms, and fix the broken public storage bucket issue.
+- [ ] **Landing Page:** Remove the hardcoded "92% Harmony" claim or label it as an example.
+
+## SECURITY SPRINT (PATH B - PENDING)
+- **Current State:** Storage bucket is Public. App uses `getPublicUrl()`.
+- **Goal:** Make bucket Private. Refactor `saveToCloset`, `closet/page.tsx`, and `dashboard/page.tsx` to use `supabase.storage.from('outfits').createSignedUrl(path, 3600)`.
+- **Impact:** Temporary 1-hour URLs for images. Zero public access. Total privacy for users.
+
+## UI REWORK QUEUE
+- [x] Closet: Fixed image overlap, added Hero Drop-Cap, fixed contrast.
+- [x] Dashboard: Fixed broken images, added skeleton loader, fixed user filtering.
+- [ ] **Analyze/Outfit Results:** Fix cut-off Harmony ring. Fix cramped Detected Items (slider badges overlapping). Fix empty bottom space. Apply editorial typography.
+- [ ] **Analyze/Outfit Loading:** User prefers the cinematic blurred background with the checklist (keep as is).
+- [ ] **Landing Page:** Remove hardcoded 92% score. Add legal footer links.
+- [ ] **Security:** Implement Signed URLs (Path B) for private storage bucket.
+
+## ROADMAP: CROP & ISOLATION TIERS
+- **Free Tier (Current):** Manual "Mobile Photoshop" crop. User drags and zooms to isolate the garment. 
+- **Paid Tier (Future):** Integrate Fal.ai. When a user scans a photo, the AI automatically segments the person, isolates each garment (even hidden ones like a shirt under a jacket), renders a full version of the occluded item, and removes the human entirely.
